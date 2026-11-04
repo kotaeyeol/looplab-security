@@ -1,0 +1,227 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>루프랩 보안팀, 7일의 방어</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+
+/* title screen: the bunker glows on the right, the menu sits on the left */
+:root{color-scheme:light;--ground:#1e1c28;--ink:#2c2733;--muted:#7b7285;--panel:#fffdf9;--panel2:#f3eef5;--line:#2c2733;--warn:#d9473a;--gold:#ffd75e;--auth:#3d7fe0;
+  --display:'Jua','Noto Sans KR',system-ui,sans-serif;--body:'Noto Sans KR',system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html,body{height:100%;overflow:hidden}
+body{background:var(--ground);color:var(--ink);font-family:var(--body);word-break:keep-all;overflow-wrap:break-word;-webkit-tap-highlight-color:transparent}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.shade{position:fixed;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(18,16,30,.92) 0%,rgba(18,16,30,.7) 30%,rgba(18,16,30,0) 56%)}
+button{font-family:var(--display);font-size:17px;color:var(--ink);background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:10px 16px;cursor:pointer;box-shadow:0 4px 0 var(--line);transition:transform .08s,box-shadow .08s;text-align:left}
+button:active{transform:translateY(2px);box-shadow:0 2px 0 var(--line)}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+button.go{background:var(--warn);color:#fff}
+#menu{position:fixed;left:max(28px,env(safe-area-inset-left,0px));top:50%;transform:translateY(-50%);width:min(560px,calc(100vw - 40px));z-index:3}
+.btns{max-width:380px}
+.kick{display:inline-block;font-size:12.5px;font-weight:700;color:#ffd9a6;letter-spacing:.06em;border:1.5px solid rgba(255,217,166,.5);border-radius:999px;padding:3px 11px}
+h1{text-wrap:balance;font-family:var(--display);font-weight:400;color:#fff;font-size:clamp(38px,5.4vw,60px);line-height:1.08;margin-top:12px;text-shadow:0 4px 0 #0d0b18,0 0 34px rgba(255,170,80,.35)}
+h1 span{display:block;color:#ffcf7a}
+.sub{color:#d9d2ea;font-size:14.5px;line-height:1.65;margin-top:12px}.sub span{display:block}@media (min-width:761px){.sub span{white-space:nowrap}}
+.btns{display:grid;gap:10px;margin-top:22px}
+.btns button{display:flex;align-items:center;gap:12px}
+.btns button i{font-style:normal;font-size:20px;width:26px;text-align:center}
+.btns button small{display:block;font-family:var(--body);font-size:12px;color:var(--muted);margin-top:1px}
+.btns button.go small{color:#ffe0db}
+.foot{margin-top:18px;font-size:12px;color:#a79fbd;line-height:1.6}
+.ov{position:fixed;inset:0;z-index:10;display:grid;place-items:center;background:rgba(18,16,30,.74);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);padding:16px}
+.card{background:var(--panel);border:2.5px solid var(--line);border-radius:22px;box-shadow:0 6px 0 var(--line);padding:22px;max-width:600px;width:100%;max-height:calc(100vh - 32px);overflow:auto}
+.card h2{font-family:var(--display);font-weight:400;font-size:27px;text-align:center}
+.card>p{text-wrap:balance;text-align:center;color:var(--muted);margin-top:6px;line-height:1.6;font-size:14.5px}
+.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+.row button{text-align:center}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}
+.ed{display:flex;flex-direction:column;border-radius:14px;background:var(--panel);border:2.5px solid var(--line);box-shadow:0 4px 0 var(--line);overflow:hidden;cursor:pointer;transition:transform .12s;font:inherit;padding:0;text-align:center}
+.ed:hover{transform:translateY(-3px)}.ed.lock,.ed:disabled{cursor:default;background:#2a2740;opacity:1}.ed.lock:hover{transform:none}
+.ed .pic{position:relative;aspect-ratio:1/1;background:var(--tone,#2c2733)}
+.ed .pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%}
+.ed .no{position:absolute;left:6px;top:6px;font:700 10.5px var(--body);color:#fff;background:rgba(20,18,30,.7);border-radius:999px;padding:1px 7px}
+.ed .nm{display:grid;place-items:center;min-height:42px;padding:5px 6px;font-family:var(--display);font-size:14px;line-height:1.2;color:var(--ink);background:var(--panel);border-top:2.5px solid var(--line);text-wrap:balance;box-shadow:inset 0 4px 0 var(--tone,#2c2733)}
+.ed.lock .pic img{filter:grayscale(1) brightness(.6)}.ed.lock .nm{background:#2a2740;color:#8b84a6;box-shadow:none;border-top-color:#3b3756}
+#ovEnd1 .card{max-width:760px}.e1{display:grid;grid-template-columns:240px 1fr;gap:20px;align-items:center}
+.e1 img{width:100%;aspect-ratio:1;object-fit:cover;object-position:50% 30%;border-radius:18px;border:3px solid var(--line);box-shadow:0 6px 0 var(--line)}
+.e1 .tag{display:inline-block;font:700 12px var(--body);color:#fff;border-radius:999px;padding:3px 12px}
+.e1 h3{font-family:var(--display);font-weight:400;font-size:30px;margin-top:8px;text-wrap:balance}
+.e1 p{margin-top:10px;font-size:15px;line-height:1.7;text-wrap:pretty}
+@media (max-width:620px){.e1{grid-template-columns:1fr}.e1 img{width:min(220px,70%);margin:0 auto;display:block}.e1 .txt{text-align:center}}
+.sec{font-family:var(--display);font-size:17px;margin:16px 0 6px}
+.opt2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.opt2 button{text-align:left;font-family:var(--body);font-size:14px;line-height:1.45;padding:10px 12px}
+.opt2 button b{display:block;font-family:var(--display);font-weight:400;font-size:17px}
+.opt2 button.on{background:#fff1b8}
+.blk{background:var(--panel2);border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.6}
+.blk+.blk{margin-top:6px}
+.blk b{font-family:var(--display);font-weight:400}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--panel2);border-radius:12px;padding:8px 12px;margin-top:6px;font-size:14.5px}
+.sw button{padding:6px 14px;text-align:center;font-size:15px}
+.note{font-size:12.5px;color:var(--muted);line-height:1.55;margin-top:8px}
+#loadHint{position:fixed;right:20px;bottom:16px;color:#a79fbd;font-size:12px;z-index:2}
+@media (max-width:760px){
+  .shade{background:linear-gradient(0deg,rgba(18,16,30,.95) 0%,rgba(18,16,30,.82) 52%,rgba(18,16,30,0) 72%)}
+  #menu{top:auto;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:none;left:50%;width:min(380px,calc(100vw - 40px));margin-left:calc(min(380px,calc(100vw - 40px)) / -2)}
+  h1{font-size:36px}
+  .btns{gap:8px;margin-top:14px}
+  .btns button{padding:8px 14px}
+  .grid{grid-template-columns:repeat(3,1fr)}
+  .opt2{grid-template-columns:1fr}
+}
+@media (max-height:600px) and (min-width:761px){.btns button small{display:none}.btns{gap:7px;margin-top:14px}h1{font-size:40px}}
+</style>
+
+<canvas id="c" aria-hidden="true"></canvas>
+<div class="shade"></div>
+<main id="menu">
+  <span class="kick">AI 윤리 · 리터러시 · 보안</span>
+  <h1>루프랩 보안팀,<span>7일의 방어</span></h1>
+  <p class="sub"><span>동시다발 해킹 경보. 60초 안에 장비를 챙겨 지하 벙커로 내려가,</span><span>7일 동안 사무실과 벙커를 오가며 회사를 지켜 내세요.</span></p>
+  <div class="btns">
+    <button class="go" id="bNew" type="button"><i>▶</i><span>새로 시작<small>60초 준비부터</small></span></button>
+    <button id="bCont" type="button" disabled><i>⟳</i><span>이어하기<small id="contInfo">저장된 기록이 없어요</small></span></button>
+    <button id="bEnd" type="button"><i>📖</i><span>엔딩 도감<small id="endInfo">0 / 10</small></span></button>
+    <button id="bTeach" type="button"><i>⚙️</i><span>설정<small>소리, 글자 크기, 저장 기록</small></span></button>
+  </div>
+  <p class="foot">기록은 이 기기의 브라우저에 자동 저장돼요. 다른 기기에서는 이어지지 않아요.</p>
+</main>
+<p id="loadHint">관제실을 불러오는 중…</p>
+
+<div id="ovNew" class="ov" hidden><div class="card" role="dialog" aria-labelledby="nTitle" style="max-width:420px">
+  <h2 id="nTitle">새로 시작할까요?</h2>
+  <p id="nText"></p>
+  <div class="row"><button id="nYes" class="go" type="button">기록 지우고 새로 시작</button><button id="nNo" type="button">취소</button></div>
+</div></div>
+
+<div id="ovEnd" class="ov" hidden><div class="card" role="dialog" aria-labelledby="eTitle" style="max-width:700px">
+  <h2 id="eTitle">엔딩 도감</h2>
+  <p>7일을 마치면 우리가 만든 이야기의 결말이 여기에 모여요. 아직 보지 않은 결말은 물음표로 남아 있어요.</p>
+  <div class="grid" id="eGrid"></div>
+  <p class="note" style="text-align:center">결말은 보안 · 신뢰 수치, 결정적인 선택, 그리고 화면에 보이지 않는 성향에 따라 달라져요. 보안·신뢰·체력 중 하나라도 0이 되면 7일 전에 끝나요.</p>
+  <div class="row"><button id="eClose" type="button">닫기</button></div>
+</div></div>
+
+<div id="ovEnd1" class="ov" hidden><div class="card" role="dialog" aria-labelledby="e1Title">
+  <div class="e1"><img id="e1Img" alt=""><div class="txt"><span class="tag" id="e1Tag"></span><h3 id="e1Title"></h3><p id="e1Text"></p></div></div>
+  <div class="row"><button id="e1Close" type="button">도감으로 돌아가기</button></div>
+</div></div>
+
+<div id="ovTeach" class="ov" hidden><div class="card" role="dialog" aria-labelledby="tTitle">
+  <h2 id="tTitle">설정</h2>
+  <div class="sw"><span>효과음·배경음</span><button id="tSound" type="button"></button></div>
+  <div class="sw"><span>글자 크게</span><button id="tBig" type="button"></button></div>
+  <div class="sw"><span>이 기기의 저장 기록</span><button id="tClear" type="button">지우기</button></div>
+  <div class="row"><button id="tClose" type="button">닫기</button></div>
+</div></div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { store, sound, face } from './js/common.js';
+import { ENDINGS } from './js/story7.js';
+import { buildBunker, loadHero, seat, updateHero, SLOT } from './js/bunker-scene.js';
+const $ = id => document.getElementById(id);
+
+/* ---------- menu ---------- */
+const save = store.load();
+const hasSave = !!(save && save.v === 3 && save.phase !== 'ending'); // 엔딩을 본 기록은 이어하기 대신 새 게임으로
+if (hasSave) {
+  $('bCont').disabled = false;
+  const dt = save.savedAt ? new Date(save.savedAt) : null;
+  $('contInfo').textContent = (save.phase === 'ending' ? '엔딩 도착' : `DAY ${save.day} / 7`) + (dt ? ` · ${dt.getMonth() + 1}/${dt.getDate()} ${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')} 저장` : '');
+}
+const seen = store.endings(); const ENDS = [['E1', '완벽한 7일', 'chaerin', 'happy', '#b8861a'], ['E2', '사람이 지킨 회사', 'boan', 'happy', '#b8861a'], ['E3', '기계에 맡긴 승리', 'fix', 'worried', '#2f6f8f'], ['E8', '통제의 요새', 'chaerin', 'focused', '#2f6f8f'], ['E6', '돈으로 산 평화', 'lead', 'sad', '#a8322a'], ['E7', '내부자 사고', 'intern', 'sad', '#a8322a'], ['E9', '불 꺼지지 않는 관제실', 'chaerin', 'exhausted', '#a8322a'], ['E4', '간신히 버틴 7일', 'boan', 'exhausted', '#2f6f8f'], ['E5', '루프랩 함락', 'boan', 'sad', '#a8322a'], ['E0', '중도 탈락', 'chaerin', 'sad', '#5a5466']];
+$('endInfo').textContent = `${seen.filter(id => ENDS.some(e => e[0] === id)).length} / ${ENDS.length}`;
+$('bNew').onclick = () => {
+  sound.play('click');
+  if (hasSave) { $('nText').textContent = `이 기기에 DAY ${save.day}까지의 기록이 있어요. 새로 시작하면 지금 기록은 지워져요.`; $('ovNew').hidden = false; return; }
+  location.href = 'game.html?new=1';
+};
+$('nYes').onclick = () => { store.clear(); location.href = 'game.html?new=1'; };
+$('nNo').onclick = () => { $('ovNew').hidden = true; };
+$('bCont').onclick = () => { sound.play('click'); location.href = 'game.html'; };
+$('bEnd').onclick = () => {
+  sound.play('click');
+  $('eGrid').innerHTML = ENDS.map(([id, t, who, ex, tone], i) => { const on = seen.includes(id), E = ENDINGS.find(e => e.id === id) || {}; return `<button type="button" class="ed${on ? '' : ' lock'}" data-id="${id}" style="--tone:${on ? tone : '#1e1c28'}" ${on ? '' : 'disabled'}><div class="pic"><img src="${on ? face(E.who || who, E.expr || ex) : 'assets/npc/gate_tail.jpg'}" alt=""><b class="no">${String(i + 1).padStart(2, '0')}</b></div><div class="nm">${on ? t : '???'}</div></button>`; }).join('');
+  $('eGrid').querySelectorAll('.ed:not(.lock)').forEach(el => el.onclick = () => openEnding(el.dataset.id));
+  $('ovEnd').hidden = false;
+};
+$('eClose').onclick = () => { $('ovEnd').hidden = true; };
+const TONE_TAG = { '#b8861a': '해피 엔딩', '#2f6f8f': '아쉬운 엔딩', '#a8322a': '배드 엔딩', '#5a5466': '중도 종료' };
+function openEnding(id) { const [, t, who, ex, tone] = ENDS.find(e => e[0] === id), E = ENDINGS.find(e => e.id === id) || {}; sound.play('click');
+  const txt = id === 'E0' ? '보안 · 신뢰 · 체력 중 하나라도 0이 되면 7일을 채우지 못하고 끝나요. 쉬지 않고 일만 하면 팀이 쓰러지고, 신뢰를 잃으면 아무도 따르지 않고, 보안이 무너지면 관제실도 문을 닫아요.' : typeof E.text === 'function' ? E.text({}) : (E.text || '');
+  $('e1Img').src = face(E.who || who, E.expr || ex); $('e1Tag').textContent = TONE_TAG[tone] || '엔딩'; $('e1Tag').style.background = tone; $('e1Title').textContent = t; $('e1Text').textContent = txt; $('ovEnd1').hidden = false; }
+$('e1Close').onclick = () => { $('ovEnd1').hidden = true; };
+function syncTeach() {
+  const s = store.settings();
+    $('tSound').textContent = s.sound ? '켜짐' : '꺼짐'; $('tBig').textContent = s.bigText ? '켜짐' : '꺼짐';
+}
+$('bTeach').onclick = () => { sound.play('click'); syncTeach(); $('ovTeach').hidden = false; };
+$('tSound').onclick = () => { sound.set(!store.settings().sound); syncTeach(); };
+$('tBig').onclick = () => { const s = store.settings(); s.bigText = !s.bigText; store.setSettings(s); syncTeach(); };
+$('tClear').onclick = () => { const b = $('tClear'); if (!b.dataset.arm) { b.dataset.arm = 1; b.textContent = '한 번 더 누르면 삭제'; b.classList.add('go'); return; } store.clear(); b.textContent = '삭제했어요'; b.disabled = true; $('bCont').disabled = true; $('contInfo').textContent = '저장된 기록이 없어요'; };
+$('tClose').onclick = () => { $('ovTeach').hidden = true; };
+/* 메뉴 단축키 (화면 표시 없이) */
+const HK = { bNew: 'N', bCont: 'Space', bEnd: 'E', bTeach: 'T', nYes: 'Space', nNo: 'X', eClose: 'Space', e1Close: 'Space', tSound: 'S', tBig: 'B', tClear: 'X', tClose: 'Space' };
+const CODE_OF = l => l === 'Space' ? 'Space' : 'Key' + l;
+addEventListener('keydown', e => {
+  const open = [...document.querySelectorAll('.ov')].reverse().find(o => !o.hidden);
+  if (e.key === 'Escape') { document.querySelectorAll('.ov').forEach(o => o.hidden = true); return; }
+  if (e.repeat) return;
+  const scope = open || document;
+  const id = Object.keys(HK).find(id => { const b = $(id); return b && scope.contains(b) && (open || !b.closest('.ov')) && CODE_OF(HK[id]) === e.code && !b.disabled; });
+  if (id) { e.preventDefault(); $(id).click(); }
+});
+
+/* ---------- backdrop scene ---------- */
+const canvas = $('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const DPR = Math.min(devicePixelRatio, 1.5); renderer.setPixelRatio(DPR);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.2;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x1e1c28);
+const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+const composer = new EffectComposer(renderer); composer.setPixelRatio(DPR);
+composer.addPass(new RenderPass(scene, camera)); composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.75, 0.5, 0.86)); composer.addPass(new OutputPass());
+const B = buildBunker(scene, renderer);
+B.drawMonitor({ day: 0, alert: 3, hot: [0, 1, 3], cards: [{ t: '동시다발 경보', d: '여러 조직에서 보안 사고 보고', tone: 'warn' }, { t: '건물 상태', d: '비상 통제 · 지하 관제실 가동', tone: 'warn' }, { t: '남은 준비 시간', d: '60초' }] });
+B.drawBoard(['30일 버티기', '확인하고 연결하기']);
+B.setRack(1, 'check');
+function resize() {
+  const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); composer.setSize(w, h);
+  camera.aspect = w / h; const wide = w > 760;
+  camera.fov = wide ? 30 : Math.min(60, 2 * THREE.MathUtils.radToDeg(Math.atan(Math.tan(THREE.MathUtils.degToRad(25)) / (w / h))));
+  camera.updateProjectionMatrix();
+  // push the room into the right half on wide screens, the top half on phones
+  if (wide) camera.setViewOffset(w * 0.98, h * 0.98, -0.17 * w, -0.02 * h, w, h); else camera.setViewOffset(w * 0.92, h * 0.92, -0.04 * w, 0.24 * h, w, h);
+}
+addEventListener('resize', resize); resize();
+const heroes = [];
+Promise.all(['chaerin', 'boan'].map(k => loadHero(k, scene))).then(([hc, hb]) => {
+  seat(hb, SLOT.C1[0], SLOT.C1[2], 0, null); seat(hc, SLOT.C2[0], SLOT.C2[2], 0, null);
+  B.chairs.C1.setSeat(hb.seatH); B.chairs.C2.setSeat(hc.seatH); hc.badgeFwd = 0.17; hc.badgeUp = -0.1;
+  hb.typing = 0.8; hc.look = new THREE.Vector3(-0.4, 1.6, -2.4); hb.look = new THREE.Vector3(-0.4, 1.6, -2.4);
+  heroes.push(hb, hc); $('loadHint').hidden = true;
+}).catch(e => { $('loadHint').textContent = '캐릭터를 불러오지 못했어요'; console.error(e); });
+const clock = new THREE.Clock(); let t = 0;
+const deskPt = { y: B.DESK.h, reach: 0.5 };
+function loop() {
+  const dt = Math.min(clock.getDelta(), 0.05); t += dt;
+  heroes.forEach(h => updateHero(h, dt, t, deskPt)); B.update(t, dt);
+  B.state.alert = 1;
+  camera.position.set(Math.sin(t * 0.12) * 0.8, 4.2 + Math.sin(t * 0.09) * 0.15, 9.6); camera.lookAt(0, 0.8, -0.3);
+  composer.render(); requestAnimationFrame(loop);
+}
+loop();
+addEventListener('pointerdown', () => sound.ctx(), { once: true });
+</script>
