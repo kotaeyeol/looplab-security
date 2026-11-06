@@ -120,7 +120,7 @@ export const DAYS = [
         gear: { otp: { mod: { match: true }, label: 'OTP · 응답 시간이 넉넉해져요' } } },
       ok: { lines: [['boan', 'happy', '이제 비밀번호만으로는 로그인이 안 돼요.']], fx: { S: 7 }, flag: 'otp_all' },
       fail: { lines: [['boan', 'exhausted', '일부만 등록됐어요. 나머지는 수동으로 해야겠네요.']], fx: { S: 2, E: -6 } } },
-    { id: 'd2_memo', map: 'bunker', spot: 'console', label: '비밀번호 수첩 처리', hint: '벙커 관제석', when: G => G.carried('memo'),
+    { id: 'd2_memo', map: 'bunker', spot: 'console', label: '주운 비밀번호 수첩, 어떻게 할까?', hint: '벙커 관제석 · 결정', when: G => G.carried('memo'),
       pre: [['chaerin', 'focused', '이 수첩, 서버 관리자 비밀번호가 그대로 적혀 있어. 갖고 있는 것만으로는 문제없지만… 어떻게 할까?']],
       choice: { q: '수첩을 어떻게 할까요?', opts: [
         { t: '적힌 계정 비밀번호를 바꾸고 수첩은 파쇄한다', run: G => { G.use('memo'); G.fx({ S: 6, E: -4 }); G.set('memo_safe'); }, lines: [['chaerin', 'happy', '좋아. 적힌 비밀번호는 이제 쓸모없어.']] },
