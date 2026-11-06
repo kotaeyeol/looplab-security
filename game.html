@@ -1916,7 +1916,7 @@ function scaleFx(fx,ok){const o={};for(const k in fx){const v=fx[k];o[k]=Math.ro
 async function doTask(t){
   if(UI.blocking)return;UI.blocking=true;hideCard();target=null;path=null;keys.clear();
   try{
-    if(t.pre)await talk(t.pre);
+    if(t.pre)await talk(typeof t.pre==='function'?t.pre(G):t.pre);
     let label='';
     if(t.choice){const o=await choose(t.choice);label=o.t;if(!t.game)G.fx({E:-3});if(o.run)o.run(G);if(o.fx)G.fx(o.fx);if(o.lines)await talk(o.lines);}
     if(t.game){const r=await runGame(t.game,t);const out=r.ok?t.ok:t.fail;label=(r.skipped?'포기':r.ok?'성공':'실패')+` (${Math.round(r.score*100)}점)`;

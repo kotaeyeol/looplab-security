@@ -304,7 +304,12 @@ export const DAYS = [
   ],
   tasks: [
     { id: 'd5_type', map: 'bunker', spot: 'cage', label: '공격 명령 막기', hint: '서버 케이지 · 터미널 방어',
-      adjust: (G, sp) => { if (G.flag('ups_ok')) { sp.mod.slow = true; sp.boosts.push({ label: '⚡ UPS가 버텨 줌 · 서버 안정, 경보가 느리게 떨어져요' }); } else { sp.time = (sp.time || 60) * 0.85; sp.boosts.push({ label: '⚡ 정전으로 서버 불안정 · 시간 -15%' }); } },
+      pre: G => G.flag('ups_ok')
+        ? [['facility', 'happy', '(무전) 2일에 같이 점검한 UPS가 전기를 버텨 주고 있어요. 서버가 안정적이라 경보가 평소보다 느리게 떨어질 거예요!'],
+           ['sys', '', '⚡ 2일 선택의 결과 · 유 기사님을 도와 UPS를 점검해 두었어요 → 이번 터미널 방어에서 경보가 느리게 떨어져요.']]
+        : [['facility', 'sad', '(무전) 2일에 UPS 점검을 못 끝내서 서버 전원이 불안정해요. 서버가 언제 또 꺼질지 몰라요. 시간이 평소보다 짧을 거예요!'],
+           ['sys', '', '⚡ 2일 선택의 결과 · 유 기사님의 UPS 점검을 돕지 않았어요 → 이번 터미널 방어의 제한 시간이 15% 줄어요.']],
+      adjust: (G, sp) => { if (G.flag('ups_ok')) { sp.mod.slow = true; sp.boosts.push({ label: '⚡ 2일 UPS 점검 덕분 · 경보가 느리게 떨어져요' }); } else { sp.time = (sp.time || 60) * 0.85; sp.boosts.push({ label: '⚡ 2일 UPS 점검 못 함 · 시간 -15%' }); } },
       game: { type: 'type', title: '터미널 방어', goal: '공격 경보가 위에서 빠르게 떨어져요. 경보 카드마다 영어 글자만, 또는 숫자만 나와요. 띄어쓰기 없이 그대로 입력하면 바로 막아요. 경보가 빨간 선에 닿으면 무결성 -1, 3번이면 실패. 8개 차단하면 성공!', how: '경보 카드의 영어 글자나 숫자를 그대로 입력 (띄어쓰기 없음, 한/영 상관없음) · 맞으면 바로 실행 · [Backspace] 지우기',
         learn: '공격을 빨리 알아채려면 기록(로그)이 미리 쌓이고 있어야 해요. 막은 뒤에는 어떤 경로로 들어왔는지 꼭 확인해요.', time: 60,
         data: { need: 8, set: ['brute', 'token', 'ransom', 'lateral', 'exfil', 'rogue', 'logwipe'] },
