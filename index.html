@@ -85,7 +85,7 @@ h1 span{display:block;color:#ffcf7a}
     <button class="go" id="bNew" type="button"><i>▶</i><span>새로 시작<small>60초 준비부터</small></span></button>
     <button id="bCont" type="button" disabled><i>⟳</i><span>이어하기<small id="contInfo">저장된 기록이 없어요</small></span></button>
     <button id="bEnd" type="button"><i>📖</i><span>엔딩 도감<small id="endInfo">0 / 10</small></span></button>
-    <button id="bTeach" type="button"><i>⚙️</i><span>설정<small>소리, 글자 크기, 저장 기록</small></span></button>
+    <button id="bTeach" type="button"><i>⚙️</i><span>설정<small>소리 크기, 난이도, 글자 크기, 저장 기록</small></span></button>
   </div>
   <p class="foot">기록은 이 기기의 브라우저에 자동 저장돼요. 다른 기기에서는 이어지지 않아요.</p>
 </main>
@@ -113,6 +113,7 @@ h1 span{display:block;color:#ffcf7a}
 <div id="ovTeach" class="ov" hidden><div class="card" role="dialog" aria-labelledby="tTitle">
   <h2 id="tTitle">설정</h2>
   <div class="sw"><span>효과음·배경음</span><button id="tSound" type="button"></button></div>
+  <div id="tSet"></div>
   <div class="sw"><span>글자 크게</span><button id="tBig" type="button"></button></div>
   <div class="sw"><span>이 기기의 저장 기록</span><button id="tClear" type="button">지우기</button></div>
   <div class="row"><button id="tClose" type="button">닫기</button></div>
@@ -127,7 +128,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { store, sound, face } from './js/common.js';
+import { store, sound, face, mountSettings } from './js/common.js';
 import { ENDINGS } from './js/story7.js';
 import { buildBunker, loadHero, seat, updateHero, SLOT } from './js/bunker-scene.js';
 const $ = id => document.getElementById(id);
@@ -166,7 +167,7 @@ function syncTeach() {
   const s = store.settings();
     $('tSound').textContent = s.sound ? '켜짐' : '꺼짐'; $('tBig').textContent = s.bigText ? '켜짐' : '꺼짐';
 }
-$('bTeach').onclick = () => { sound.play('click'); syncTeach(); $('ovTeach').hidden = false; };
+$('bTeach').onclick = () => { sound.play('click'); syncTeach(); mountSettings($('tSet')); $('ovTeach').hidden = false; };
 $('tSound').onclick = () => { sound.set(!store.settings().sound); syncTeach(); };
 $('tBig').onclick = () => { const s = store.settings(); s.bigText = !s.bigText; store.setSettings(s); syncTeach(); };
 $('tClear').onclick = () => { const b = $('tClear'); if (!b.dataset.arm) { b.dataset.arm = 1; b.textContent = '한 번 더 누르면 삭제'; b.classList.add('go'); return; } store.clear(); b.textContent = '삭제했어요'; b.disabled = true; $('bCont').disabled = true; $('contInfo').textContent = '저장된 기록이 없어요'; };

@@ -158,7 +158,7 @@ export const store = {
   load: () => lsGet(SAVE_KEY),
   save: s => { s.savedAt = Date.now(); return lsSet(SAVE_KEY, s); },
   clear: () => lsDel(SAVE_KEY),
-  settings: () => Object.assign({ sound: true, bigText: false, funding: 'stable' }, lsGet(SET_KEY) || {}),
+  settings: () => Object.assign({ sound: true, bigText: false, funding: 'stable', vol: 0.8, volMusic: 0.8, diff: 'normal' }, lsGet(SET_KEY) || {}),
   setSettings: v => lsSet(SET_KEY, v),
   endings: () => lsGet(SEEN_KEY) || [],
 };
@@ -242,13 +242,17 @@ export function gearIcon(id, size = 96) {
 
 /* ---------------- tiny synth sound (no audio files) ---------------- */
 let actx = null, master = null, hum = null;
+/* 소리 크기: 설정의 전체 소리(0~1) → 실제 출력. 기본 80% = 예전보다 약 1.7배 크게 */
+const masterGain = () => 0.75 * Math.max(0, Math.min(1, store.settings().vol ?? 0.8));
+const musicGain = () => 0.5 * Math.max(0, Math.min(1, store.settings().volMusic ?? 0.8));
 export const sound = {
   on: store.settings().sound,
   ctx() {
     if (!this.on) return null;
-    try { if (!actx) { actx = new (window.AudioContext || window.webkitAudioContext)(); master = actx.createGain(); master.gain.value = 0.35; master.connect(actx.destination); } if (actx.state === 'suspended') actx.resume(); } catch (e) { return null; }
+    try { if (!actx) { actx = new (window.AudioContext || window.webkitAudioContext)(); master = actx.createGain(); master.gain.value = masterGain(); master.connect(actx.destination); } if (actx.state === 'suspended') actx.resume(); } catch (e) { return null; }
     return actx;
   },
+  setVol(v) { const s = store.settings(); s.vol = v; store.setSettings(s); if (master && actx) master.gain.setTargetAtTime(masterGain(), actx.currentTime, 0.03); },
   set(on) { this.on = on; const s = store.settings(); s.sound = on; store.setSettings(s); if (!on) { this.stopHum(); bgm.stop(true); if (actx) actx.suspend(); } else { const w = bgm.want; bgm.cur = null; bgm.mode(w); } },
   tone(f, d = 0.12, type = 'sine', v = 0.3, t0 = 0, f2) {
     const a = this.ctx(); if (!a) return; const t = a.currentTime + t0;
@@ -304,7 +308,7 @@ const MT = {
 const hz = m => 440 * Math.pow(2, (m - 69) / 12);
 let bus = null, noiseBuf = null;
 export const bgm = {
-  on: store.settings().music !== false, cur: null, want: null, step: 0, next: 0, timer: 0, vol: 0.5,
+  on: store.settings().music !== false, cur: null, want: null, step: 0, next: 0, timer: 0, get vol() { return musicGain(); },
   _bus() {
     const a = sound.ctx(); if (!a) return null;
     if (!bus) { bus = a.createGain(); bus.gain.value = 0; bus.connect(master);
@@ -313,6 +317,7 @@ export const bgm = {
   },
   set(on) { this.on = on; const s = store.settings(); s.music = on; store.setSettings(s); if (on) { const w = this.want; this.cur = null; this.mode(w); } else this.stop(true); },
   toggle() { this.set(!this.on); return this.on; },
+  setVol(v) { const s = store.settings(); s.volMusic = v; store.setSettings(s); if (bus && actx && this.cur) bus.gain.setTargetAtTime(Math.max(0.0001, this.vol), actx.currentTime, 0.05); },
   mode(name) {
     this.want = name; if (!name || !this.on || !sound.on) return this.stop(true);
     if (name === this.cur && this.timer) return;
@@ -380,3 +385,33 @@ export const bgm = {
     if (H === 'sparse' && i === 8 && bar % 2) this._noise(t, 0.3, 0.02, 3000);
   },
 };
+
+/* ---------------- 설정 패널 (메인 화면·게임 일시정지에서 함께 사용) ----------------
+   전체 소리 · 배경음 크기 슬라이더 + 난이도(쉬움/보통/어려움) */
+export const DIFF_INFO = { easy: ['쉬움', '천천히 · 시간 넉넉 · 하트 +1'], normal: ['보통', '처음 하는 학생에게 맞춘 기본값'], hard: ['어려움', '빠른 속도 · 하트 3개 · 통과 기준 높음'] };
+export function mountSettings(el) {
+  if (!document.getElementById('setPanelCss')) { const st = document.createElement('style'); st.id = 'setPanelCss'; st.textContent = `
+.setp{display:grid;gap:8px;margin:10px 0 4px;text-align:left}
+.setp .row2{background:rgba(127,127,160,.13);border-radius:12px;padding:9px 13px;display:grid;grid-template-columns:96px 1fr 46px;align-items:center;gap:10px;font-size:14.5px}
+.setp .row2 b{font-weight:700}
+.setp input[type=range]{width:100%;accent-color:#17a99a;height:22px;cursor:pointer}
+.setp .pct{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;font-size:13.5px;opacity:.85}
+.setp .diff{background:rgba(127,127,160,.13);border-radius:12px;padding:9px 13px}
+.setp .diff .hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:14.5px;margin-bottom:7px}
+.setp .diff .hd small{opacity:.7;font-size:12.5px}
+.setp .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.setp .seg button{padding:7px 0;border-radius:10px;font-size:14.5px;font-weight:700;cursor:pointer;text-align:center}
+.setp .seg button.on{background:#17a99a!important;color:#fff!important;border-color:#0e7d71!important}
+.setp .note{font-size:12px;opacity:.65;margin-top:6px}`; document.head.appendChild(st); }
+  const s = store.settings(), pc = v => Math.round(v * 100) + '%';
+  el.innerHTML = `<div class="setp">
+    <label class="row2"><b>전체 소리</b><input type="range" min="0" max="100" step="5" data-k="vol" value="${Math.round((s.vol ?? 0.8) * 100)}"><span class="pct">${pc(s.vol ?? 0.8)}</span></label>
+    <label class="row2"><b>배경음 크기</b><input type="range" min="0" max="100" step="5" data-k="volMusic" value="${Math.round((s.volMusic ?? 0.8) * 100)}"><span class="pct">${pc(s.volMusic ?? 0.8)}</span></label>
+    <div class="diff"><div class="hd"><b>미니게임 난이도</b><small data-d></small></div><div class="seg">${Object.keys(DIFF_INFO).map(k => `<button type="button" data-diff="${k}">${DIFF_INFO[k][0]}</button>`).join('')}</div><div class="note">바꾼 난이도는 다음 미니게임부터 적용돼요.</div></div></div>`;
+  const syncD = () => { const d = store.settings().diff || 'normal'; el.querySelectorAll('[data-diff]').forEach(b => b.classList.toggle('on', b.dataset.diff === d)); el.querySelector('[data-d]').textContent = DIFF_INFO[d][1]; };
+  el.querySelectorAll('input[type=range]').forEach(r => { r.addEventListener('input', () => { const v = +r.value / 100; r.nextElementSibling.textContent = pc(v);
+    if (r.dataset.k === 'vol') { if (!sound.on && v > 0) sound.set(true); sound.setVol(v); } else bgm.setVol(v); });
+    r.addEventListener('change', () => sound.play('notify')); r.addEventListener('keydown', e => e.stopPropagation()); });
+  el.querySelectorAll('[data-diff]').forEach(b => b.onclick = () => { const s2 = store.settings(); s2.diff = b.dataset.diff; store.setSettings(s2); sound.play('click'); syncD(); });
+  syncD();
+}

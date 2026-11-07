@@ -2,7 +2,10 @@
    playAction(spec) -> Promise<{ok, score, skipped}>
    spec: {type, title, goal, how, learn, time, data, boosts:[{icon,label}], mod:{...}}
    흐름: 안내 카드(Space) -> 3·2·1 -> 게임 -> 결과 카드(Space). G 포기하기(글자 입력 게임은 길게) · 결과 화면 R 다시하기 */
-import { sound } from './common.js';
+import { sound, store } from './common.js';
+/* 난이도 (설정에서 선택) — 보통이 기본, 어려움이 예전 난이도 */
+export const DIFFS = { easy: { name: '쉬움', speed: 0.72, rate: 0.78, slow: 1.35, lives: 1, pass: 0.55, time: 1.3 }, normal: { name: '보통', speed: 0.86, rate: 0.88, slow: 1.15, lives: 1, pass: 0.6, time: 1.15 }, hard: { name: '어려움', speed: 1, rate: 1, slow: 1, lives: 0, pass: 0.7, time: 1 } };
+const DIFF = () => DIFFS[store.settings().diff] || DIFFS.normal;
 
 const CSS = `
 #ag{word-break:keep-all;overflow-wrap:break-word;text-wrap:pretty;position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:rgba(14,12,26,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);padding:14px;font-family:'Noto Sans KR',system-ui,sans-serif;color:#2c2733}
@@ -138,7 +141,7 @@ function flushUI() { const s = clockV != null ? Math.max(0, Math.ceil(clockV)) :
   setUI('hearts', heartsV ? heartsV.join('/') : '', v => { ui.agHearts.innerHTML = heartsV ? Array.from({ length: heartsV[1] }, (_, i) => `<span class="${i < heartsV[0] ? '' : 'off'}">♥</span>`).join('') : ''; }); }
 /* ---- 하단 안내 · 조작 키 ---- */
 const FOOT = {
-  firewall: ['노란 테두리 패킷의 앞쪽이 관문에 닿는 순간 판정돼요.', s => (s.data.lanes || []).map((l, k) => [String(k + 1), l.short || l.name])],
+  firewall: ['관문은 기본 차단이에요. 안전한 패킷만 번호 키로 허용하고, 위험한 건 그냥 두세요.', s => (s.data.lanes || []).map((l, k) => [String(k + 1), (l.short || l.name) + ' 허용'])],
   sort: ['보낸 사람 이름보다 회신 주소와 요청 내용을 확인하세요.', () => [['←', '안전'], ['→', '위험 신고']]],
   mfa: ['내가 요청하지 않은 로그인은 승인하지 마세요.', () => [['←', '거부'], ['→', '승인']]],
   deepcall: ['카운트다운 안에 흔적을 잡고, 둘만 아는 질문으로 확인하세요.', () => [['1', '영상'], ['2', '음성'], ['3', '요구'], ['↑↓', '고르기'], ['SPACE', '선택']]],
@@ -154,7 +157,7 @@ const FOOT = {
 };
 /* 시작 전 안내 팝업: 어떻게 하는 게임인지 3단계로 보여 줘요 */
 const HOWTO = {
-  firewall: ['통로마다 패킷이 관문 쪽으로 흘러오고, 통로마다 통과 규칙이 달라요.', '통로 번호 키(1·2·3)를 누르면 그 통로의 관문이 열리거나 닫혀요.', '빨갛게 반짝이는 패킷은 위험해요. 노란 테두리(다음 판정) 패킷이 닿기 전에, 위험하면 닫고 안전하면 열어요.'],
+  firewall: ['패킷이 통로를 따라 와서 관문 앞에서 잠깐 멈춰요. 관문은 늘 닫혀 있어요(기본 차단).', '왼쪽 허용 규칙에 맞는 패킷이면, 노란 시간 고리가 끝나기 전에 그 통로 번호 키(1·2·3)를 눌러 허용해요.', '빨갛게 반짝이는 위험 패킷은 아무것도 누르지 마세요. 시간이 끝나면 자동 차단! 안전한 것만 열어 주면 통과!'],
   sort: ['메일·문자·메신저 카드가 위에서 떨어져요.', '보낸 사람, 회신 주소, 링크, 요청 내용을 꼼꼼히 봐요.', '바닥에 닿기 전에 안전하면 ←, 위험하면 → 로 보내요.'],
   mfa: ['왼쪽 관제 화면에는 지금 실제로 로그인 중인 직원이, 오른쪽 휴대폰에는 로그인 승인 요청이 떠요.', '이름 · 위치 · 기기 · 번호를 양쪽에서 비교해요. 하나라도 다르거나 로그인 중인 직원이 없으면 수상해요.', '본인 요청이면 → 승인, 아니면 ← 거부. 시간이 지나면 자동으로 거부돼요.'],
   deepcall: ['대표님 얼굴과 목소리로 급한 송금을 요구하는 영상통화가 와요. ① 흔적 잡기 → ② 질문하기, 두 단계예요.', '① 장면마다 3·2·1 카운트다운이 돌아요. 그 안에 이상한 흔적을 종류에 맞게 1 영상 · 2 음성 · 3 요구 키로 잡아요. 평범한 장면은 그냥 두세요.', '② ↑↓·Space로 진짜 대표님만 답할 수 있는 질문 2개를 골라요. 둘만 아는 질문에 얼버무리면 가짜라는 증거예요!'],
@@ -201,8 +204,8 @@ const SEVK = { CRIT: { t: '긴급', c: '#d9473a' }, HIGH: { t: '위험', c: '#e0
 const KRSRC = { sshd: '무차별 로그인 시도', auth: '세션 토큰 재사용', edr: '악성 프로세스 실행', ids: '내부 확산 시도', proxy: '수상한 외부 전송', iam: '계정 권한 악용', pkg: '서명 없는 업데이트', auditd: '기록 삭제 시도', 'ai-gw': 'AI 지시 주입' };
 const SEVC = { CRIT: '#ff5a6e', HIGH: '#ffb84d', MED: '#7cc4ff' };
 function GAME_type(spec) {
-  const T = spec.time || 60, need = spec.data.need || 8, slow = spec.mod?.slow ? 1.35 : 1, set = spec.data.set || Object.keys(TPL);
-  let left = T, hp = 3, buf = '', killed = 0, list = [], spawn = 0.3, shake = 0, out = [`looplab-soc defense shell v2.4 — ${set.length} threat feeds online`, `type the code shown on each alert — letters only or numbers only, no spaces`];
+  const T = spec.time || 60, need = spec.data.need || 8, slow = (spec.mod?.slow ? 1.35 : 1) / DIFF().speed, set = spec.data.set || Object.keys(TPL);
+  let left = T, hp = 3 + DIFF().lives, buf = '', killed = 0, list = [], spawn = 0.3, shake = 0, out = [`looplab-soc defense shell v2.4 — ${set.length} threat feeds online`, `type the code shown on each alert — letters only or numbers only, no spaces`];
   const cols = 3, floor = () => H - 104; globalThis.__agType = () => list.map(a => a.cmd); // 안내 화면 캡처용
   // 한 카드에는 '영어 글자만' 또는 '숫자만' 나와요 (띄어쓰기·특수문자 없음)
   const mk = () => { for (let tries = 0; tries < 20; tries++) { const a = TPL[pick(set)](), [verb, tgt = ''] = a.cmd.split(' '); let cmd, kind;
@@ -224,7 +227,7 @@ function GAME_type(spec) {
         const a = mk(); const free = !a ? [] : [0, 1, 2].filter(c => !list.some(q => q.col === c && q.y < 140)); if (free.length) { const c = pick(free); list.push({ ...a, col: c, y: 10, v: (floor() - 82) / ((7.2 - prog * 2.4) * slow) }); touch(); } }
       for (const a of [...list]) { a.y += a.v * dt; if (a.y > floor() - 72) { list.splice(list.indexOf(a), 1); hp--; sound.play('alert'); say(`[!!] ${a.src}: ${a.msg} — 서버 도달`, '#ff5a6e'); touch(); if (hp <= 0) return api.end(false, killed / need * 0.5); } }
       if (left <= 0) api.end(killed >= need * 0.75, killed / need * 0.8); },
-    draw(dt, t) { bg(); clock(left); bar(killed / need, `차단 ${killed} / ${need}`); hearts(hp, 3);
+    draw(dt, t) { bg(); clock(left); bar(killed / need, `차단 ${killed} / ${need}`); hearts(hp, 3 + DIFF().lives);
       const cw = (W - 40) / 3, tb = buf.trimStart(), target = tb ? list.filter(a => a.cmd.startsWith(tb)).sort((a, b) => b.y - a.y)[0] : null;
       for (const a of list) { a.w = cw - 18; a.x = 20 + a.col * cw + 9; const lv = SEVK[a.sev] || SEVK.MED, on = a === target;
         g.fillStyle = on ? '#2c3a4a' : PAL.panel; rr(a.x, a.y, a.w, 72, 10); g.fill(); g.strokeStyle = on ? PAL.tealHi : lv.c; g.lineWidth = 2; g.stroke();
@@ -244,9 +247,9 @@ function GAME_type(spec) {
    2) 메일·메시지 분류 (sort) — 빠르게 떨어지는 카드를 ← 안전 / → 위험
    ================================================================= */
 function GAME_sort(spec) {
-  const cards = shuffle(spec.data.cards).slice(0, spec.data.count || 10).map(c => ({ ...c, tilt: (Math.random() < 0.5 ? -1 : 1) * rnd(0.014, 0.034) })), n = cards.length, slow = spec.mod?.slow ? 1.3 : 1;
+  const cards = shuffle(spec.data.cards).slice(0, spec.data.count || 10).map(c => ({ ...c, tilt: (Math.random() < 0.5 ? -1 : 1) * rnd(0.014, 0.034) })), n = cards.length, slow = (spec.mod?.slow ? 1.3 : 1) / DIFF().speed;
   const Ltxt = spec.data.left || '안전', Rtxt = spec.data.right || '위험 · 신고';
-  let i = 0, y = -200, lives = 3, right = 0, fb = null, fbT = 0, slide = 0, dir = 0, pause = 0;
+  let i = 0, y = -200, lives = 3 + DIFF().lives, right = 0, fb = null, fbT = 0, slide = 0, dir = 0, pause = 0;
   const CH = 214;
   const decide = d => { if (dir || i >= n || pause > 0) return; const c = cards[i], ok = (d > 0) === !!c.bad;
     if (ok) { right++; sound.play('store'); fb = { ok: true, t: `✓ ${c.type || (c.bad ? '위험' : '정상')}` }; fbT = 0.9; }
@@ -261,7 +264,7 @@ function GAME_sort(spec) {
       const fall = Math.max(3.0, (spec.data.fall || 5.4) - i * 0.22) * slow;
       y += (H - 64 - CH + 200) / fall * dt;
       if (y > H - 64 - CH) { const c = cards[i]; lives--; sound.play('alert'); fb = { ok: false, t: `⏱ 시간 초과 — ${c.type ? c.type + ': ' : ''}${c.why || ''}` }; fbT = 2.6; pause = 1.4; dir = c.bad ? 1 : -1; } },
-    draw(dt, t) { bg(); bar(1 - i / n, `오분류 ${3 - lives} / 3 · 남은 메시지 ${n - i}`); hearts(lives, 3);
+    draw(dt, t) { bg(); bar(1 - i / n, `오분류 ${3 + DIFF().lives - lives} / ${3 + DIFF().lives} · 남은 메시지 ${n - i}`); hearts(lives, 3 + DIFF().lives);
       const bw = Math.min(540, W - 330), bx = W / 2 - bw / 2, fl = H - 64;
       const zone = (x, ok) => { g.textAlign = 'center'; g.fillStyle = ok ? PAL.tealHi : PAL.redHi; g.font = JUA(44); g.fillText(ok ? '✓' : '!', x, H / 2 - 34); g.fillStyle = '#fff'; g.font = JUA(26); g.fillText(ok ? Ltxt : Rtxt, x, H / 2 + 6); g.fillStyle = PAL.muted; g.font = FONT(12.5); g.fillText(ok ? '신뢰할 수 있는 메시지' : '의심스러운 단서 발견', x, H / 2 + 30);
         g.fillStyle = ok ? PAL.tealHi : PAL.redHi; g.font = FONT(13, 1); g.fillText(ok ? '← 또는 A' : '→ 또는 D', x, H / 2 + 54); };
@@ -289,61 +292,104 @@ function GAME_sort(spec) {
    3) 방화벽 관문 (firewall) — 1·2·3으로 구역별 관문을 여닫아 패킷 통과/차단
    ================================================================= */
 function GAME_firewall(spec) {
-  const T = spec.time || 42, lanes = spec.data.lanes, pk = spec.data.packets, hint = !!spec.mod?.hint;
-  const open = lanes.map(() => false); let left = T, list = [], spawn = 0.4, lives = 3, good = 0, total = 0, blockedOk = 0;
-  const toggle = k => { if (k >= lanes.length) return; open[k] = !open[k]; sound.play('click'); };
-  const tx0 = () => Math.max(190, W * 0.21), gateX = () => W * 0.73, pxOf = p => tx0() + 26 + p.x / 0.78 * (gateX() - tx0() - 26);
-  tbtns(lanes.map((l, k) => [`${k + 1} · ${l.short || l.name}`, () => toggle(k)]));
+  /* 기본 차단(default deny): 패킷이 관문 앞에서 멈추면 규칙에 맞는 것만 번호 키로 허용. 가만히 두면 자동 차단 */
+  const T = spec.time || 45, lanes = spec.data.lanes, pk = spec.data.packets, hint = !!spec.mod?.hint, E = DIFF();
+  const WAIT = (hint ? 4.2 : 3.6) * E.slow, n = lanes.length;
+  let left = T, list = [], spawn = 0.3, lives = 3 + E.lives, good = 0, total = 0;
+  const gate = lanes.map(() => ({ open: 0, flash: 0, col: '' })), srv = lanes.map(() => ({ flash: 0, col: '' }));
+  const L = () => { const tx0 = Math.max(200, W * 0.24), gx = W * 0.70, sw = Math.min(118, W * 0.12); return { tx0, gx, stopX: gx - 30, sw, sx: gx + 34, top: 8, rowH: (H - 16) / n }; };
+  const laneY = k => 8 + (k + 0.5) * ((H - 16) / n);
+  const kind = s => /와이파이/.test(s) ? 'wifi' : /외부|IP/.test(s) ? 'globe' : /인턴|직원/.test(s) ? 'person' : /알 수 없는/.test(s) ? 'q' : /숨은|문서/.test(s) ? 'doc' : /픽스/.test(s) ? 'bot' : /백업/.test(s) ? 'clock' : 'pc';
+  const head = k => list.filter(p => p.lane === k && p.st === 'move' || p.lane === k && p.st === 'wait').sort((a, b) => b.x - a.x)[0];
+  function judge(p, allow) { total++; const y = laneY(p.lane), l = L();
+    if (allow) { gate[p.lane].open = 1; p.st = 'pass';
+      if (p.ok) { good++; srv[p.lane].flash = 1; srv[p.lane].col = PAL.tealHi; pop(l.sx + l.sw / 2, y - 46, '허용 ✓', '#3fd6bd'); sound.play('store'); }
+      else { lives--; p.breach = true; srv[p.lane].flash = 1; srv[p.lane].col = PAL.redHi; pop(l.sx + l.sw / 2, y - 46, '침입!', '#ff7a6e'); sound.play('alert'); } }
+    else { p.st = 'gone'; p.t = 0;
+      if (p.ok) { gate[p.lane].flash = 1; gate[p.lane].col = '#ffb84d'; pop(l.stopX - 60, y - 40, '업무 막힘', '#ffb84d'); sound.play('page'); }
+      else { good++; gate[p.lane].flash = 1; gate[p.lane].col = PAL.tealHi; pop(l.stopX - 60, y - 40, '자동 차단!', '#3fd6bd'); sound.play('store'); } }
+    if (lives <= 0) api.end(false, good / Math.max(1, total) * 0.5); }
+  globalThis.__agFw = () => list.filter(p => p.st === 'wait').map(p => [p.lane, p.ok]); // 자동 테스트·캡처용
+  const allow = k => { if (k >= n) return; const p = list.find(q => q.lane === k && q.st === 'wait'); if (p) judge(p, true); else sound.play('click'); };
+  tbtns(lanes.map((l, k) => [`${k + 1} · ${l.short || l.name} 허용`, () => allow(k)]));
   return {
-    key(code, down) { if (!down) return; const m = code.match(/^(?:Digit|Numpad)([1-9])$/); if (m) toggle(+m[1] - 1); const q = { KeyQ: 0, KeyW: 1, KeyE: 2 }[code]; if (q != null) toggle(q); },
-    update(dt) { left -= dt; spawn -= dt; const prog = 1 - left / T;
-      if (spawn <= 0) { spawn = rnd(0.75, 1.25) * (1 - prog * 0.3); const p = pick(pk), inLane = list.filter(q => q.lane === p.lane && !q.dead);
-        const lastQ = inLane.sort((a, b) => a.x - b.x)[0];
-        if (!lastQ || lastQ.x > 0.36) { g.font = FONT(13, 1); const w = g.measureText((hint ? '✓ ' : '') + p.label).width + 26; let v = rnd(0.16, 0.19) * (1 + prog * 0.55); if (lastQ) v = Math.min(v, lastQ.v); list.push({ ...p, x: 0, v, w }); } }
-      for (const p of [...list]) {
-        if (p.dead) { p.deadT -= dt; if (p.deadT <= 0) list.splice(list.indexOf(p), 1); continue; }
-        p.x += p.v * dt; const y = laneY(p.lane);
-        if (!p.judged && pxOf(p) + p.w / 2 >= gateX() - 12) { p.judged = true; total++;
-          if (open[p.lane]) { if (p.ok) { good++; pop(gateX() + 60, y - 30, '통과', '#3fd6bd'); } else { lives--; sound.play('alert'); pop(gateX() + 60, y - 30, '침입!', '#ff7a6e'); p.breach = true; } }
-          else { p.dead = true; p.deadT = 0.5; if (p.ok) { p.jam = true; pop(gateX() - 60, y - 30, '업무 막힘', '#ffb84d'); } else { good++; blockedOk++; pop(gateX() - 60, y - 30, '차단!', '#3fd6bd'); } }
-          if (lives <= 0) return api.end(false, good / Math.max(1, total) * 0.5); }
-        if (p.x > 1.1) list.splice(list.indexOf(p), 1); }
-      if (left <= 0) { const s = good / Math.max(1, total); api.end(s >= 0.7, s); } },
-    draw(dt, t) { bg(); clock(left); bar(left / T, `허용·차단 판단 중 · 정확도 ${total ? Math.round(good / total * 100) : 100}%`); hearts(lives, 3);
-      const n = lanes.length, top = 8, rowH = (H - 16) / n, lx = 26, tx0 = Math.max(190, W * 0.21), gx = W * 0.73, sw = Math.min(120, W * 0.12), sx = gx + 30, kx = sx + sw + 16;
-      lanes.forEach((l, k) => { const y = top + rowH * (k + 0.5);
-        if (k) { g.strokeStyle = PAL.line; g.lineWidth = 1; g.beginPath(); g.moveTo(lx, top + rowH * k); g.lineTo(W - 22, top + rowH * k); g.stroke(); }
-        g.fillStyle = '#fff'; g.font = JUA(20); g.textAlign = 'left'; g.fillText(l.name, lx, y - 3); g.fillStyle = PAL.muted; g.font = FONT(12); wrap(l.rule, lx, y + 17, tx0 - lx - 16, 15, 2);
-        g.fillStyle = '#262c44'; rr(tx0, y - 30, gx - tx0 - 22, 60, 10); g.fill(); g.setLineDash([5, 5]); g.strokeStyle = '#4a5274'; g.lineWidth = 1.3; g.stroke(); g.setLineDash([]);
-        g.fillStyle = '#5c6386'; g.font = FONT(15, 1); g.textAlign = 'right'; g.fillText('→ →', gx - 40, y + 5);
-        const oc = open[k] ? PAL.teal : PAL.red; g.save(); g.shadowColor = open[k] ? '#2fe3c6' : '#ff5a4e'; g.shadowBlur = 22; g.fillStyle = open[k] ? 'rgba(23,169,154,.30)' : 'rgba(217,71,58,.28)'; rr(gx - 17, y - 46, 34, 92, 17); g.fill(); g.restore();
-        g.fillStyle = oc; rr(gx - 7, y - 33, 14, 66, 7); g.fill();
-        g.fillStyle = open[k] ? '#7ff0dc' : '#ff9a90'; g.font = FONT(11.5, 1); g.textAlign = 'center'; g.fillText(open[k] ? '열림' : '닫힘', gx, y - 52);
-        panel(sx, y - 31, sw, 62, 10, '#353b56', '#7a82a6'); g.fillStyle = '#e9ecf5'; g.font = FONT(12, 1); g.textAlign = 'center'; g.fillText('▤', sx + sw / 2, y - 6); g.fillText(l.dest || '서버', sx + sw / 2, y + 15);
-        keycap(kx, y - 15, String(k + 1), open[k], 36); });
-      const nextOf = {}; for (const p of list) if (!p.judged && !p.dead && (!nextOf[p.lane] || p.x > nextOf[p.lane].x)) nextOf[p.lane] = p;
-      g.save(); g.beginPath(); g.rect(tx0 + 2, 0, W - tx0, H); g.clip();
-      for (const p of list) { const y = top + rowH * (p.lane + 0.5), x = pxOf(p), tw = p.w; if (x > W - 10) continue; const lab = hint ? (p.ok ? '✓ ' : '! ') + p.label : p.label;
-        g.globalAlpha = p.dead ? Math.max(0, p.deadT / 0.5) : 1; const nx = nextOf[p.lane] === p;
-        const bad = !p.ok && !p.dead && !p.breach, on = hint ? 1 : 0.5 + 0.5 * Math.sin(t * 9);
-        g.fillStyle = p.breach ? PAL.red : p.dead ? '#3a2430' : '#1c2b3a'; rr(x - tw / 2, y - 17, tw, 34, 8); g.fill();
-        if (bad) { g.save(); g.globalAlpha *= hint ? 0.85 : 0.25 + 0.6 * on; g.shadowColor = '#ff4a3d'; g.shadowBlur = hint ? 10 : 8 + 14 * on; g.fillStyle = '#b8323a'; rr(x - tw / 2, y - 17, tw, 34, 8); g.fill(); g.restore(); }
-        g.lineWidth = nx ? 3 : 2; g.strokeStyle = nx ? '#ffd75e' : p.breach ? '#ffb1a8' : bad ? (hint || on > 0.5 ? '#ff6a5e' : '#8f97b8') : hint ? PAL.teal : '#8f97b8'; g.stroke();
-        g.fillStyle = '#fff'; g.font = FONT(13, 1); g.textAlign = 'center'; g.fillText(lab, x, y + 5);
-        if (p.dead) { g.strokeStyle = p.jam ? '#ffb84d' : PAL.tealHi; g.lineWidth = 3; g.beginPath(); g.moveTo(x - 10, y - 10); g.lineTo(x + 10, y + 10); g.moveTo(x + 10, y - 10); g.lineTo(x - 10, y + 10); g.stroke(); }
-        if (nx) { const d = gateX() - 12 - (x + tw / 2); if (d < 120) { g.fillStyle = '#ffd75e'; g.font = FONT(11, 1); g.fillText('다음 판정', x, y - 24); } }
+    key(code, down) { if (!down) return; const m = code.match(/^(?:Digit|Numpad)([1-9])$/); if (m) allow(+m[1] - 1); const q = { KeyQ: 0, KeyW: 1, KeyE: 2 }[code]; if (q != null) allow(q); },
+    down(x, y) { const l = L(); if (x > l.tx0) allow(Math.floor((y - l.top) / l.rowH)); },
+    update(dt) { left -= dt; spawn -= dt; const prog = 1 - left / T, l = L(), span = l.stopX - l.tx0;
+      if (spawn <= 0) { spawn = rnd(1.5, 2.2) * (1 - prog * 0.25) / E.rate;
+        const free = lanes.map((_, k) => k).filter(k => list.filter(p => p.lane === k && (p.st === 'move' || p.st === 'wait')).length < 2);
+        if (free.length) { const k = pick(free), p = pick(pk.filter(q => q.lane === k)); g.font = FONT(13, 1); list.push({ ...p, x: 0, v: rnd(150, 175) * (1 + prog * 0.3) * E.speed, w: g.measureText(p.label).width + 60, st: 'move', t: 0, kind: kind(p.label) }); } }
+      for (const gt of gate) { gt.open = Math.max(0, gt.open - dt * 1.4); gt.flash = Math.max(0, gt.flash - dt * 2); }
+      for (const s of srv) s.flash = Math.max(0, s.flash - dt * 1.6);
+      for (const p of [...list]) { p.t += dt;
+        if (p.st === 'move') { const front = list.filter(q => q !== p && q.lane === p.lane && (q.st === 'move' || q.st === 'wait') && q.x > p.x).sort((a, b) => a.x - b.x)[0];
+          const lim = front ? front.x - front.w / 2 - p.w / 2 - 14 : span - p.w / 2; p.x = Math.min(p.x + p.v * dt, lim);
+          if (!front && p.x >= span - p.w / 2 - 0.5) { p.st = 'wait'; p.wait = WAIT; } }
+        else if (p.st === 'wait') { p.wait -= dt; if (p.wait <= 0) judge(p, false); }
+        else if (p.st === 'pass') { p.x += 420 * dt; if (p.x > span + 260) list.splice(list.indexOf(p), 1); }
+        else if (p.st === 'gone' && p.t > 0.55) list.splice(list.indexOf(p), 1); }
+      if (ended) return;
+      if (left <= 0) { const s = good / Math.max(1, total); api.end(s >= E.pass, s); } },
+    draw(dt, t) { bg(); clock(left); bar(left / T, `기본 차단 중 · 판단 정확도 ${total ? Math.round(good / total * 100) : 100}%`); hearts(lives, 3 + E.lives);
+      const l = L(), lx = 22;
+      lanes.forEach((ln, k) => { const y = laneY(k), waitP = list.find(p => p.lane === k && p.st === 'wait');
+        if (k) { g.strokeStyle = PAL.line; g.lineWidth = 1; g.beginPath(); g.moveTo(lx, l.top + l.rowH * k); g.lineTo(W - 18, l.top + l.rowH * k); g.stroke(); }
+        /* zone card */
+        const ic = ['pc', 'clock', 'bot'][k] || 'pc'; g.fillStyle = '#323a5c'; g.beginPath(); g.arc(lx + 20, y - 18, 18, 0, 7); g.fill(); glyph(ic, lx + 20, y - 18, 11, '#cfe0ff');
+        g.fillStyle = '#fff'; g.font = JUA(19); g.textAlign = 'left'; g.fillText(ln.name, lx + 46, y - 12);
+        g.fillStyle = 'rgba(23,169,154,.16)'; rr(lx, y + 2, l.tx0 - lx - 16, 38, 8); g.fill(); g.fillStyle = PAL.tealHi; g.font = FONT(11.5, 1); g.fillText('허용', lx + 8, y + 17);
+        g.fillStyle = '#d7f5ef'; g.font = FONT(11.5); wrap(ln.rule, lx + 40, y + 17, l.tx0 - lx - 62, 14, 2);
+        /* pipe */
+        const px = l.tx0, pw = l.stopX - l.tx0 + 6; const gr = g.createLinearGradient(px, 0, px + pw, 0); gr.addColorStop(0, '#20263d'); gr.addColorStop(1, '#2a3150');
+        g.fillStyle = gr; rr(px, y - 26, pw, 52, 26); g.fill(); g.strokeStyle = '#3d4670'; g.lineWidth = 1.5; g.stroke();
+        g.save(); g.setLineDash([10, 14]); g.lineDashOffset = -t * 40; g.strokeStyle = 'rgba(140,155,210,.22)'; g.lineWidth = 2; g.beginPath(); g.moveTo(px + 20, y); g.lineTo(px + pw - 10, y); g.stroke(); g.restore();
+        /* gate */
+        const gt = gate[k], op = gt.open, gc = gt.flash > 0 ? gt.col : op > 0.05 ? PAL.tealHi : PAL.red;
+        g.save(); g.shadowColor = gc; g.shadowBlur = 16 + gt.flash * 18; g.fillStyle = '#171b2c'; rr(l.gx - 14, y - 46, 28, 92, 10); g.fill(); g.restore();
+        g.strokeStyle = gc; g.lineWidth = 2.5; rr(l.gx - 14, y - 46, 28, 92, 10); g.stroke();
+        for (let i = 0; i < 5; i++) { const by = y - 36 + i * 17 - op * 70; if (by < y - 44) continue; g.fillStyle = gc; rr(l.gx - 9, by, 18, 7, 3); g.fill(); }
+        g.fillStyle = op > 0.05 ? '#7ff0dc' : '#ff9a90'; g.font = FONT(11, 1); g.textAlign = 'center'; g.fillText(op > 0.05 ? '열림' : '기본 차단', l.gx, y - 54);
+        /* server rack */
+        const sv = srv[k], sx = l.sx, sw = l.sw; g.save(); if (sv.flash > 0) { g.shadowColor = sv.col; g.shadowBlur = 24 * sv.flash; }
+        g.fillStyle = '#2b3150'; rr(sx, y - 34, sw, 68, 10); g.fill(); g.restore(); g.strokeStyle = sv.flash > 0 ? sv.col : '#5a6390'; g.lineWidth = 1.6; rr(sx, y - 34, sw, 68, 10); g.stroke();
+        for (let i = 0; i < 3; i++) { g.fillStyle = '#1b2035'; rr(sx + 8, y - 27 + i * 14, 34, 9, 2); g.fill(); g.fillStyle = (Math.sin(t * 6 + i * 2 + k) > 0) ? '#5fe08a' : '#2f6b48'; g.beginPath(); g.arc(sx + 50, y - 22.5 + i * 14, 2.6, 0, 7); g.fill(); }
+        g.fillStyle = '#e9ecf5'; g.font = FONT(12, 1); g.textAlign = 'center'; g.fillText(ln.dest || '서버', sx + sw / 2, y + 26);
+        /* key prompt */
+        const kx = sx + sw + 12; if (kx + 40 < W) { const pulse = waitP ? 0.5 + 0.5 * Math.sin(t * 10) : 0; g.save(); if (waitP) { g.shadowColor = '#ffd75e'; g.shadowBlur = 10 + 10 * pulse; } keycap(kx, y - 28, String(k + 1), !!waitP, 36); g.restore();
+          g.fillStyle = waitP ? '#ffd75e' : PAL.muted; g.font = FONT(11, 1); g.textAlign = 'center'; g.fillText(waitP ? '허용?' : '대기', kx + 18, y + 20); } });
+      /* packets */
+      g.save(); g.beginPath(); g.rect(l.tx0, 0, l.sx - l.tx0 - 2, H); g.clip();
+      for (const p of list) { const y = laneY(p.lane), cx = l.tx0 + 6 + p.x, tw = p.w;
+        let a = 1, dy = 0; if (p.st === 'pass') a = Math.max(0, 1 - (p.x - (l.stopX - l.tx0) + p.w / 2) / (p.w + 40)); if (p.st === 'gone') { a = Math.max(0, 1 - p.t / 0.55); dy = p.ok ? 0 : -p.t * 30; } g.globalAlpha = a;
+        const bad = !p.ok && !p.breach && p.st !== 'gone', on = hint ? 1 : 0.5 + 0.5 * Math.sin(t * 9);
+        g.fillStyle = p.breach ? PAL.red : '#1c2b3a'; rr(cx - tw / 2, y - 18 + dy, tw, 36, 18); g.fill();
+        if (bad) { g.save(); g.globalAlpha *= hint ? 0.85 : 0.25 + 0.6 * on; g.shadowColor = '#ff4a3d'; g.shadowBlur = hint ? 10 : 8 + 14 * on; g.fillStyle = '#b8323a'; rr(cx - tw / 2, y - 18 + dy, tw, 36, 18); g.fill(); g.restore(); }
+        const wt = p.st === 'wait'; g.lineWidth = wt ? 3 : 2; g.strokeStyle = wt ? '#ffd75e' : bad ? (hint || on > 0.5 ? '#ff6a5e' : '#8f97b8') : hint && p.ok ? PAL.teal : '#8f97b8'; rr(cx - tw / 2, y - 18 + dy, tw, 36, 18); g.stroke();
+        const ix = cx - tw / 2 + 19; g.fillStyle = 'rgba(255,255,255,.12)'; g.beginPath(); g.arc(ix, y + dy, 13, 0, 7); g.fill(); glyph(p.kind, ix, y + dy, 8, '#fff');
+        if (wt) { const f = Math.max(0, p.wait / WAIT); g.strokeStyle = f < 0.35 ? '#ff7a6e' : '#ffd75e'; g.lineWidth = 3; g.beginPath(); g.arc(ix, y, 15.5, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2); g.stroke(); }
+        g.fillStyle = '#fff'; g.font = FONT(13, 1); g.textAlign = 'left'; g.fillText((hint ? (p.ok ? '✓ ' : '! ') : '') + p.label, ix + 19, y + 5 + dy);
+        if (p.st === 'gone') { g.strokeStyle = p.ok ? '#ffb84d' : PAL.tealHi; g.lineWidth = 3.5; g.beginPath(); g.moveTo(cx - 11, y - 11); g.lineTo(cx + 11, y + 11); g.moveTo(cx + 11, y - 11); g.lineTo(cx - 11, y + 11); g.stroke(); }
         g.globalAlpha = 1; }
       g.restore();
     },
   };
-  function laneY(k) { return 8 + (k + 0.5) * ((H - 16) / lanes.length); }
+  function glyph(k, x, y, r, c) { g.save(); g.strokeStyle = c; g.fillStyle = c; g.lineWidth = Math.max(1.6, r * 0.2); g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath();
+    if (k === 'pc') { g.strokeRect(x - r, y - r * 0.75, r * 2, r * 1.3); g.moveTo(x, y + r * 0.55); g.lineTo(x, y + r); g.moveTo(x - r * 0.5, y + r); g.lineTo(x + r * 0.5, y + r); g.stroke(); }
+    else if (k === 'wifi') { for (let i = 1; i <= 3; i++) { g.beginPath(); g.arc(x, y + r * 0.7, r * 0.42 * i, -Math.PI * 0.78, -Math.PI * 0.22); g.stroke(); } g.beginPath(); g.arc(x, y + r * 0.7, r * 0.16, 0, 7); g.fill(); }
+    else if (k === 'globe') { g.arc(x, y, r, 0, 7); g.stroke(); g.beginPath(); g.ellipse(x, y, r * 0.42, r, 0, 0, 7); g.moveTo(x - r, y); g.lineTo(x + r, y); g.stroke(); }
+    else if (k === 'person') { g.arc(x, y - r * 0.4, r * 0.42, 0, 7); g.fill(); g.beginPath(); g.arc(x, y + r * 0.95, r * 0.8, Math.PI, 0); g.fill(); }
+    else if (k === 'q') { g.font = `700 ${r * 2}px "Noto Sans KR",sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('?', x, y + 1); }
+    else if (k === 'doc') { g.moveTo(x - r * 0.7, y - r); g.lineTo(x + r * 0.3, y - r); g.lineTo(x + r * 0.7, y - r * 0.6); g.lineTo(x + r * 0.7, y + r); g.lineTo(x - r * 0.7, y + r); g.closePath(); g.stroke(); g.beginPath(); g.moveTo(x - r * 0.35, y - r * 0.1); g.lineTo(x + r * 0.35, y - r * 0.1); g.moveTo(x - r * 0.35, y + r * 0.4); g.lineTo(x + r * 0.35, y + r * 0.4); g.stroke(); }
+    else if (k === 'bot') { rr(x - r * 0.85, y - r * 0.55, r * 1.7, r * 1.35, r * 0.35); g.stroke(); g.beginPath(); g.arc(x - r * 0.35, y + r * 0.1, r * 0.16, 0, 7); g.arc(x + r * 0.35, y + r * 0.1, r * 0.16, 0, 7); g.fill(); g.beginPath(); g.moveTo(x, y - r * 0.55); g.lineTo(x, y - r); g.stroke(); }
+    else if (k === 'clock') { g.arc(x, y, r, 0, 7); g.stroke(); g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - r * 0.6); g.moveTo(x, y); g.lineTo(x + r * 0.45, y + r * 0.2); g.stroke(); }
+    g.restore(); }
 }
 
 /* =================================================================
    4) MFA 푸시 폭탄 (mfa) — 실제 로그인 화면과 맞는 요청만 Y 승인
    ================================================================= */
 function GAME_mfa(spec) {
-  const n = spec.data.count || 12, match = true, T0 = spec.mod?.match ? 5.6 : 4, people = spec.data.people || ['서보안', '홍채린', '강차단', '신무결', '유복구'];
+  const n = spec.data.count || 12, match = true, T0 = (spec.mod?.match ? 5.6 : 4) * DIFF().slow, people = spec.data.people || ['서보안', '홍채린', '강차단', '신무결', '유복구'];
   const seq = []; for (let k = 0; k < n; k++) { const legit = Math.random() < 0.45; const who = pick(people); const code = rint(10, 99);
     if (legit) seq.push({ legit, who, where: '루프랩 사무실', dev: pick(['업무 PC', '업무 노트북']), code, shown: code, why: '' });
     else { const kind = pick(['bomb', 'abroad', 'mismatch', 'mismatch', 'night']);
@@ -354,7 +400,7 @@ function GAME_mfa(spec) {
   // 번호 불일치(관제 화면에 로그인 중인 직원이 있는데 휴대폰 요청 번호가 다름)는 판마다 최소 3번, 첫 번째는 앞쪽(2~3번째)에 꼭 나와요
   const mm = k => { const who = pick(people), code = rint(10, 99); let sh = rint(10, 99); while (sh === code) sh = rint(10, 99); seq[k] = { legit: false, screen: true, who, where: '루프랩 사무실', dev: pick(['업무 PC', '업무 노트북']), code, shown: sh, why: `관제 화면 번호(${code})와 휴대폰 요청 번호(${sh})가 달라요 — 누군가 같은 계정으로 동시에 로그인 중!` }; };
   { const slots = shuffle([...Array(n).keys()].filter(k => k > 3)).slice(0, 2); [rint(1, 2), ...slots].forEach(mm); }
-  let i = 0, tleft = T0, lives = 3, right = 0, fb = null, fbT = 0;
+  let i = 0, tleft = T0, lives = 3 + DIFF().lives, right = 0, fb = null, fbT = 0;
   const answer = yes => { if (i >= n || fbT > 0.9) return; const p = seq[i]; const ok = yes === p.legit;
     if (ok) { right++; sound.play('store'); fb = { ok: true, t: yes ? '✓ 본인 로그인 승인' : '✓ 거부 — ' + p.why }; }
     else { lives--; sound.play('alert'); fb = { ok: false, t: yes ? '✗ 공격자에게 문을 열어 줬어요 — ' + p.why : '✗ 본인 로그인을 막았어요 (업무 지연)' }; }
@@ -363,7 +409,7 @@ function GAME_mfa(spec) {
   return {
     key(code, down) { if (!down) return; if (code === 'ArrowRight' || code === 'KeyD') answer(true); if (code === 'ArrowLeft' || code === 'KeyA') answer(false); },
     update(dt) { fbT = Math.max(0, fbT - dt); if (i < n && fbT <= 0.9) { tleft -= dt; if (tleft <= 0) { const p = seq[i]; if (p.legit) { fb = { ok: false, t: '⏱ 응답이 없어 본인 로그인이 실패했어요' }; } else { right++; fb = { ok: true, t: '⏱ 응답 없음 → 자동 거부 (안전)' }; } fbT = 1.4; i++; tleft = Math.max(T0 * 0.6, T0 - i * 0.14); if (i >= n) setTimeout(() => api.end(right >= n - 2, right / n), 600); } } },
-    draw(dt, t) { bg(); bar(1 - i / n, `요청 대조 중 · ${Math.min(i + 1, n)} / ${n}`); hearts(lives, 3);
+    draw(dt, t) { bg(); bar(1 - i / n, `요청 대조 중 · ${Math.min(i + 1, n)} / ${n}`); hearts(lives, 3 + DIFF().lives);
       const p = seq[Math.min(i, n - 1)], top = 18, lx = 24, lw = Math.min(W * 0.48, 560);
       g.fillStyle = PAL.sub; g.font = FONT(12.5); g.textAlign = 'left'; g.fillText('관제 화면 / 실제 로그인 중인 직원', lx, top + 10);
       const ch = Math.min(232, H - 110); card(lx, top + 24, lw, ch);
@@ -429,7 +475,7 @@ function GAME_gate(spec) {
     const ok = shuffle(all.filter(p => !p.tail && p.ok)), no = shuffle(all.filter(p => !p.tail && !p.ok)), tl = shuffle(all.filter(p => p.tail)).slice(0, spec.data.tails || 2);
     const nOk = Math.min(ok.length, Math.max(3, Math.round(spec.data.pick / 2))), main = shuffle([...ok.slice(0, nOk), ...no.slice(0, spec.data.pick - nOk)]);
     const oks = main.map((p, k) => p.ok && k < main.length - 1 ? k : -1).filter(k => k >= 0), at = shuffle(oks).slice(0, tl.length).sort((a, b) => b - a);
-    at.forEach((k, j) => main.splice(k + 1, 0, tl[j])); return main.map(p => p.vars ? { ...p, ...pick(p.vars) } : p); })(), bio = !!spec.mod?.bio, TODAY = spec.data.today || ''; let i = 0, state = 'walk', px = 0, open = 0, lives = 3, right = 0, fb = null, fbT = 0, tail = null;
+    at.forEach((k, j) => main.splice(k + 1, 0, tl[j])); return main.map(p => p.vars ? { ...p, ...pick(p.vars) } : p); })(), bio = !!spec.mod?.bio, TODAY = spec.data.today || ''; let i = 0, state = 'walk', px = 0, open = 0, lives = 3 + DIFF().lives, right = 0, fb = null, fbT = 0, tail = null;
   const cur = () => P[i];
   const next = () => { i++; while (P[i] && P[i].handled) i++; px = 0; state = 'walk'; if (i >= P.length) setTimeout(() => api.end(lives > 0 && right >= P.length - 2, right / P.length), 500); };
   const say = (ok, t) => { fb = { ok, t }; fbT = ok ? 1.1 : 2.2; sound.play(ok ? 'store' : 'alert'); if (ok) right++; else lives--; if (lives <= 0) setTimeout(() => api.end(false, right / P.length * 0.6), 300); };
@@ -442,10 +488,10 @@ function GAME_gate(spec) {
     update(dt) { fbT = Math.max(0, fbT - dt); if (i >= P.length) return; const p = cur();
       if (p && p.tail && state === 'walk' && px === 0) { p.handled = true; next(); return; }
       if (state === 'walk') { px += dt * 0.55; if (px >= 0.5) { px = 0.5; state = 'wait'; } }
-      else if (state === 'pass') { px += dt * 0.7; open -= dt; if (tail) { tail.x += dt * 0.42; if (tail.x >= 0.55 && open > 0) { say(false, '✗ 문이 열린 사이 ' + tail.name + '이 따라 들어왔어요'); tail = null; } }
+      else if (state === 'pass') { px += dt * 0.7; open -= dt; if (tail) { tail.x += dt * 0.42 * DIFF().speed; if (tail.x >= 0.55 && open > 0) { say(false, '✗ 문이 열린 사이 ' + tail.name + '이 따라 들어왔어요'); tail = null; } }
         if (px > 1.05 && open <= 0) { if (tail) { say(false, '✗ ' + tail.name + '이 따라 들어왔어요'); tail = null; } next(); } }
       else if (state === 'back') { px -= dt * 0.7; if (px < -0.05) next(); } },
-    draw(dt, t) { bg(); bar(1 - i / P.length, `방문자 확인 중 · ${Math.min(i + 1, P.length)} / ${P.length}`); hearts(lives, 3);
+    draw(dt, t) { bg(); bar(1 - i / P.length, `방문자 확인 중 · ${Math.min(i + 1, P.length)} / ${P.length}`); hearts(lives, 3 + DIFF().lives);
       const top = 14, cs = Math.min(H - 28, W * 0.42), cx = 20, cy = top;
       // ---- 출입 카메라 (실제 얼굴)
       panel(cx, cy, cs, cs, 14, '#151827', '#4a5274'); const ih = cs - 52;
@@ -688,7 +734,7 @@ function GAME_deepcall(spec) {
   const D = spec.data, img = Object.assign(new Image(), { src: D.img || 'assets/npc/ceo_neutral.jpg' });
   const EV = shuffle(D.events).slice(0, D.count || 11), BAD = EV.filter(e => e.k !== 'n').length;
   const Q = shuffle(D.questions).map(q => ({ ...q }));
-  const KN = { v: '영상', a: '음성', s: '요구' }, CD = 3.0; let lastN = 99; globalThis.__agDeep = () => (st === 1 && cur && !cur.done && banner <= 0 ? cur.k : st); // 안내 화면 캡처용 // 흔적마다 3초 (3·2·1 카운트다운)
+  const KN = { v: '영상', a: '음성', s: '요구' }, CD = 3.0 * DIFF().slow; let lastN = 99; globalThis.__agDeep = () => (st === 1 && cur && !cur.done && banner <= 0 ? cur.k : st); // 안내 화면 캡처용 // 흔적마다 3초 (3·2·1 카운트다운)
   let st = 1, pressure = 22, ei = -1, cur = null, curT = 0.8, caught = 0, wrongs = 0, missed = 0, fb = null, fbT = 0, banner = 2.2;
   let sub = D.opening || '홍 팀장, 나야. 회의 들어가기 전이라 짧게 말할게.', sel = 0, asks = 0, evidence = 0, picks = 0, goodPick = 0, endT = 0, over = false;
   const say = (ok, t) => { fb = { ok, t }; fbT = ok ? 1.3 : 2.4; sound.play(ok ? 'store' : 'alert'); };
@@ -727,7 +773,7 @@ function GAME_deepcall(spec) {
     draw(dt, t) { bg();
       const stageName = ['', '① 흔적 잡기', '② 진짜만 아는 질문', '', '통화 종료'][st];
       bar(Math.max(0, 1 - pressure / 100), `${stageName} · 흔적 ${caught} / ${BAD}`);
-      const vx = 18, vy = 14, vw = Math.min(W * 0.56, 560), vh = Math.min(H - 190, vw * 0.62);
+      const vx = 18, vy = 14, vw = Math.min(W * 0.56, 560), vh = Math.min(H - 82, vw * 0.8);
       g.fillStyle = '#0b0d16'; rr(vx, vy, vw, vh, 14); g.fill(); g.save(); rr(vx, vy, vw, vh, 14); g.clip();
       const fxk = cur && !cur.done && st === 1 ? cur.fx : (st >= 2 && Math.sin(t * 3) > 0.92 ? 'slice' : '');
       const S = vh, ix = vx + (vw - S) / 2, iy = vy; const im = img.complete && img.naturalWidth ? img : null;
@@ -746,8 +792,9 @@ function GAME_deepcall(spec) {
         g.strokeStyle = col; g.lineCap = 'round'; g.beginPath(); g.arc(cxr, cyr, R2, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (curT / CD)); g.stroke(); g.lineCap = 'butt';
         g.fillStyle = col; g.font = JUA(34 + fr * 10); g.textAlign = 'center'; g.fillText(String(n), cxr, cyr + 12); g.fillStyle = '#e9ecf5'; g.font = FONT(11, 1); g.fillText('초 안에!', cxr, cyr + R2 + 22); }
       const ay = vy + vh + 10; panel(vx, ay, vw, 44, 10, PAL.panel, PAL.line); g.fillStyle = PAL.muted; g.font = FONT(11.5, 1); g.textAlign = 'left'; g.fillText('🔊 음성', vx + 12, ay + 27); wave(vx + 70, ay + 6, vw - 86, 32, t, cur && !cur.done && st === 1 ? cur.wave : '');
-      const sy2 = ay + 54, sh2 = Math.max(56, H - sy2 - 14); card(vx, sy2, vw, sh2 - 4, 12); const narr = /^\(/.test(sub);
-      g.fillStyle = narr ? PAL.gray : '#7a5af5'; g.font = FONT(12, 1); g.textAlign = 'left'; g.fillText(narr ? '상황' : '대표(?)', vx + 16, sy2 + 22); g.fillStyle = PAL.ink; g.font = FONT(15, 1); wrap(sub, vx + 16, sy2 + 44, vw - 32, 20, Math.max(1, Math.floor((sh2 - 50) / 20)));
+      if (st >= 2 && sub) { /* ② 질문 단계부터: 대표(?)의 대답을 영상 아래쪽 자막으로 */ const narr = /^\(/.test(sub); g.font = FONT(15, 1); const Ls = lines(sub, vw - 56).slice(0, 3), ch = 34 + Ls.length * 21, cy0 = vy + vh - ch - 12;
+        g.fillStyle = 'rgba(10,12,22,.86)'; rr(vx + 14, cy0, vw - 28, ch, 12); g.fill(); g.strokeStyle = narr ? 'rgba(255,255,255,.18)' : 'rgba(150,120,255,.6)'; g.lineWidth = 1.5; g.stroke();
+        g.fillStyle = narr ? '#b9bfd6' : '#b9a6ff'; g.font = FONT(12, 1); g.textAlign = 'left'; g.fillText(narr ? '상황' : '대표(?)의 대답', vx + 28, cy0 + 20); g.fillStyle = '#fff'; g.font = FONT(15, 1); Ls.forEach((l, i) => g.fillText(l, vx + 28, cy0 + 42 + i * 21)); }
       const rx = vx + vw + 22, rw = W - rx - 18; g.fillStyle = PAL.sub; g.font = FONT(12.5); g.textAlign = 'left'; g.fillText('송금 압박', rx, 26);
       g.fillStyle = '#151827'; rr(rx, 36, rw, 16, 8); g.fill(); g.fillStyle = pressure > 75 ? PAL.red : pressure > 50 ? PAL.orange : PAL.teal; rr(rx, 36, rw * Math.min(1, pressure / 100), 16, 8); g.fill();
       g.fillStyle = PAL.muted; g.font = FONT(11.5); g.fillText('가득 차면 압박에 넘어가 송금을 승인해 버려요', rx, 70);
@@ -771,9 +818,9 @@ function GAME_deepcall(spec) {
    14) 감염 경로 끊기 (slice) — 마우스로 그어 빨간 선을 끊어요 (키보드: 대상 옆 글자 키)
    ================================================================= */
 function GAME_slice(spec) {
-  const D = spec.data, T = spec.time || 38, slow = spec.mod?.slow ? 0.72 : 1, KEYS = ['KeyW', 'KeyE', 'KeyD', 'KeyC', 'KeyX', 'KeyZ', 'KeyA', 'KeyQ'];
+  const D = spec.data, T = spec.time || 38, slow = (spec.mod?.slow ? 0.72 : 1) * DIFF().speed, KEYS = ['KeyW', 'KeyE', 'KeyD', 'KeyC', 'KeyX', 'KeyZ', 'KeyA', 'KeyQ'];
   const TG = D.targets.map((q, i) => ({ ...q, i, inf: false, key: KEYS[i], x: 0, y: 0 }));
-  let left = T, lives = 3, cuts = 0, fpos = 0, inf = 0, L = [], spawn = 0.8, trail = [], lastP = null, flash = 0, fb = null, fbT = 0, ended2 = false;
+  let left = T, lives = 3 + DIFF().lives, cuts = 0, fpos = 0, inf = 0, L = [], spawn = 0.8, trail = [], lastP = null, flash = 0, fb = null, fbT = 0, ended2 = false;
   const C = { x: 0, y: 0 };
   const say = (ok, t) => { fb = { ok, t }; fbT = ok ? 1 : 2; };
   const layout = () => { C.x = W / 2; C.y = H / 2 + 14; const rx = W * 0.38, ry = H * 0.33; TG.forEach((q, i) => { const a = -Math.PI / 2 + i / TG.length * Math.PI * 2; q.x = C.x + Math.cos(a) * rx; q.y = C.y + Math.sin(a) * ry; }); };
@@ -813,7 +860,7 @@ function GAME_slice(spec) {
       if (lives <= 0 || left <= 0) end(); },
     draw(dt, t) { layout(); bg(); if (flash) { g.fillStyle = 'rgba(217,71,58,.16)'; g.fillRect(0, 0, W, H); }
       g.strokeStyle = 'rgba(120,140,200,.07)'; g.lineWidth = 1; for (let x = 0; x < W; x += 32) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); } for (let y = 0; y < H; y += 32) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
-      clock(left); bar(left / T, `차단 ${cuts} · 감염 ${inf} · 오탐 ${fpos}`); hearts(lives, 3);
+      clock(left); bar(left / T, `차단 ${cuts} · 감염 ${inf} · 오탐 ${fpos}`); hearts(lives, 3 + DIFF().lives);
       for (const l of L) { const s = src(l), p = tip(l);
         if (l.dead) { g.globalAlpha = Math.max(0, l.cutT * 2); g.strokeStyle = l.bad ? PAL.tealHi : '#ff9a90'; g.lineWidth = 3; g.setLineDash([4, 6]); g.beginPath(); drawn(l).forEach((q, k) => k ? g.lineTo(q.x, q.y) : g.moveTo(q.x, q.y)); g.stroke(); g.setLineDash([]); g.globalAlpha = 1; continue; }
         g.save(); if (l.bad) { g.shadowColor = '#ff3b2e'; g.shadowBlur = 14; } g.strokeStyle = l.bad ? '#ff5a4e' : PAL.blueHi; g.lineWidth = l.bad ? 5 : 3; if (!l.bad) g.setLineDash([8, 6]);
@@ -960,7 +1007,7 @@ function GAME_greek(spec) {
    ================================================================= */
 function GAME_factcheck(spec) {
   const D = spec.data, R0 = D.rounds.slice(0, D.count || D.rounds.length), T = spec.time || 100;
-  let ri = 0, sel = 0, marks = new Set(), reveal = 0, lives = 3, left = T, caught = 0, wrong = 0, totalF = 0, over = false, fb = null, fbT = 0, rows = [], subBtn = null;
+  let ri = 0, sel = 0, marks = new Set(), reveal = 0, lives = 3 + DIFF().lives, left = T, caught = 0, wrong = 0, totalF = 0, over = false, fb = null, fbT = 0, rows = [], subBtn = null;
   const RD = () => R0[ri];
   const say = (ok, t) => { fb = { ok, t }; fbT = ok ? 1.4 : 2.6; };
   const end = () => { if (over) return; over = true; const sc = Math.max(0, Math.min(1, (caught - wrong * 0.5) / Math.max(1, totalF))); setTimeout(() => api.end(lives > 0 && sc >= 0.6, sc), 500); };
@@ -981,7 +1028,7 @@ function GAME_factcheck(spec) {
       if (code === 'Space') toggle(sel); if (code === 'KeyE') submit(); },
     down(x, y) { if (over) return; if (reveal) return next(); if (inR(x, y, subBtn)) return submit(); const k = rows.findIndex(r => inR(x, y, r)); if (k >= 0) toggle(k); },
     update(dt) { fbT = Math.max(0, fbT - dt); if (over) return; if (reveal) { reveal -= dt; if (reveal <= 0) next(); return; } left -= dt; if (left <= 0) { left = 0; end(); } },
-    draw(dt, t) { bg(); clock(left); bar(left / T, `자료 ${Math.min(ri + 1, R0.length)} / ${R0.length} · 찾은 거짓 ${caught}`); hearts(lives, 3);
+    draw(dt, t) { bg(); clock(left); bar(left / T, `자료 ${Math.min(ri + 1, R0.length)} / ${R0.length} · 찾은 거짓 ${caught}`); hearts(lives, 3 + DIFF().lives);
       const rd = R0[Math.min(ri, R0.length - 1)], top = 14, lw = Math.min(W * 0.4, 420), lx = 18, lh = H - top - 14;
       // ---- 원본 자료
       card(lx, top, lw, lh, 14); g.fillStyle = PAL.teal; g.font = FONT(11.5, 1); g.textAlign = 'left'; g.fillText('원본 자료 · 사실', lx + 18, top + 24);
@@ -1055,7 +1102,8 @@ function finish(ok, score, skipped) {
     if (!el) { sound.play(kind); } else { const target = Math.round(sc * 100), steps = Math.max(1, Math.min(14, Math.round(target / 7))); let k = 0; el.textContent = '0점';
       const iv = setInterval(() => { k++; el.textContent = Math.round(target * k / steps) + '점'; sound.play('count'); if (k >= steps) { clearInterval(iv); sound.play(kind); el.classList.add(kind); } }, 55); } }, skipped ? 0 : 450);
 }
-function restart() { if (stage !== 'play' || ended) return; game?.cleanup?.(); fx.length = 0; playT = 0; holdK = null; sound.play('page'); game = GAMES[finish.spec.type](finish.spec); }
+function restart() { if (stage !== 'play' || ended) return; game?.cleanup?.(); fx.length = 0; playT = 0; holdK = null; sound.play('page'); game = GAMES[finish.spec.type](timed(finish.spec)); }
+function timed(spec) { const E = DIFF(); return spec.time ? { ...spec, time: spec.time * E.time } : { ...spec, diffTime: E.time }; }
 function close() { cancelAnimationFrame(raf); raf = 0; root.hidden = true; game = null; stage = 'off'; cv.style.cursor = ''; }
 export function playAction(spec) {
   ensure(); finish.spec = spec; ended = false; fx.length = 0; stage = 'intro'; playT = 0;
@@ -1085,7 +1133,7 @@ export function playAction(spec) {
     const start = async () => {
       if (stage !== 'intro') return; stage = 'count'; $c().classList.remove('full'); sound.play('click'); $c().innerHTML = '<div style="background:none;border:0;box-shadow:none"><div class="big" id="agN">3</div></div>';
       for (const n of ['3', '2', '1']) { $c().querySelector('#agN').textContent = n; sound.play('tick'); await new Promise(r => setTimeout(r, 600)); } sound.play('go');
-      $c().hidden = true; size(); clkPrev = null; game = GAMES[spec.type](spec); stage = 'play';
+      $c().hidden = true; size(); clkPrev = null; game = GAMES[spec.type](timed(spec)); stage = 'play';
       const ty = TYPING.has(spec.type); ui.agSkip.classList.remove('off'); ui.agSkip.textContent = ty ? '포기하기 (G 길게)' : '포기하기 (G)'; ui.agRe.textContent = ty ? '다시하기 (R 길게)' : '다시하기 (R)';
       last = performance.now(); if (!raf) raf = requestAnimationFrame(loop);
     };

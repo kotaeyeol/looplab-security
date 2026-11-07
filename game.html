@@ -149,6 +149,7 @@ button.go{background:var(--warn);color:#fff}
 .dim{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:rgba(22,20,36,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);padding:16px}
 .dim[hidden]{display:none!important}
 #dayCard .pick{max-width:460px}
+#pause .pick{max-width:460px;max-height:94vh;overflow:auto}
 #dayCard .dn{font-family:var(--display);font-size:64px;line-height:1;color:var(--warn)}
 #dayCard .loc{display:inline-block;margin-top:8px;font-size:13px;font-weight:700;color:#fff;border-radius:999px;padding:3px 12px}
 /* dialogue (big portraits) */
@@ -343,6 +344,7 @@ p,li,#dlgBody,#otx,.tuttx,.learn,#startText,#endText,#sumText,#resText,#dayText,
 <div id="pause" hidden><div class="pick" role="dialog" aria-labelledby="pauseTitle">
   <h2 id="pauseTitle">일시정지</h2>
   <p id="pauseText">진행 상황은 이 기기에 자동으로 저장돼요.</p>
+  <div id="pSet"></div>
   <div class="menu-col"><button id="pResume" class="go" type="button">계속하기</button><button id="pIntro" type="button">인트로 다시 보기</button><button id="pRestart" type="button">오늘 처음부터 다시</button><button id="pMain" type="button">메인 화면으로</button></div>
 </div></div>
 <div class="dim" id="dayCard" hidden><div class="pick"><div class="dn" id="dayN">DAY 1</div><h2 id="dayTitle"></h2><span class="loc" id="dayLoc"></span><p id="dayText" style="margin-top:10px"></p><div class="res-btns"><button id="dayGo" class="go" type="button">시작</button></div></div></div>
@@ -365,7 +367,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { CAST, GEAR, CONCEPT, glyph, iconCanvas, gearIcon, rr, fetchGLB, store, sound, bgm, josa, face as castFace } from './js/common.js';
+import { CAST, GEAR, CONCEPT, glyph, iconCanvas, gearIcon, rr, fetchGLB, store, sound, bgm, josa, mountSettings, face as castFace } from './js/common.js';
 import { playAction } from './js/action.js';
 import { DAYS, ENDINGS, STATIONS, INSTALL_TEXT, ITEM_USE, STAT_LABEL, TRAIT_INFO } from './js/story7.js';
 const QS=new URLSearchParams(location.search);
@@ -1912,7 +1914,7 @@ async function runGame(spec,task){
   let r;try{r=AUTO?{ok:Math.random()<0.7,score:0.75,skipped:false}:await playAction(sp);}finally{inGame=false;}UI.blocking=false;
   G.fx({E:-7});return r;
 }
-function scaleFx(fx,ok){const o={};for(const k in fx){const v=fx[k];o[k]=Math.round(v>0?v*(ok?0.7:1):v*(ok?1:1.5));}return o;}
+function scaleFx(fx,ok){const fm={easy:1,normal:1.2,hard:1.5}[store.settings().diff]||1.2,o={};for(const k in fx){const v=fx[k];o[k]=Math.round(v>0?v*(ok?0.7:1):v*(ok?1:fm));}return o;}
 async function doTask(t){
   if(UI.blocking)return;UI.blocking=true;hideCard();target=null;path=null;keys.clear();
   try{
@@ -2091,7 +2093,7 @@ $('startTitle').textContent='비상 경보! 비인가 접근 탐지';
 $('startText').innerHTML=`방금 루프랩 1층 서버와 출입 시스템에서 <b>비인가 접근</b>이 탐지됐어요. 공격자가 사무실을 장악하기 전에 <b>60초 뒤 1층은 비상 차단 규정에 따라 완전히 잠겨요.</b><br>그 전에 필요한 보안 장비와 물품을 챙겨, 회사 망과 분리된 <b>지하 관제실</b>로 내려가야 해요. 1층에 남겨진 장비는 침입자가 손댔을 수 있어서 <b>나중에 쓸 수 없어요.</b><br><b>서 대리 가방 4칸, 홍 팀장 가방 3칸</b>(마스터 키 1칸 고정). 물건은 11개라 다 챙길 수 없어요. 챙긴 장비는 벙커에 설치하거나 미니게임·결정에서 직접 써요.`;
 
 /* ================= 일시정지 ================= */
-function setPause(on){if(on&&(!$('loading').hidden||!$('result').hidden||!$('ending').hidden))return;paused=on;$('pause').hidden=!on;keys.clear();if(!on){clock.getDelta();canvas.focus();}
+function setPause(on){if(on&&(!$('loading').hidden||!$('result').hidden||!$('ending').hidden))return;paused=on;$('pause').hidden=!on;if(on)mountSettings($('pSet'));keys.clear();if(!on){clock.getDelta();canvas.focus();}
   $('pRestart').textContent=(PHASE==='prep'?'60초 처음부터 다시':'오늘 처음부터 다시')+' (X)';}
 $('btnPause').addEventListener('click',()=>setPause(true));
 $('pResume').addEventListener('click',()=>setPause(false));
