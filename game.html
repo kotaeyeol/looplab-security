@@ -1274,7 +1274,7 @@ function nameTag(key,text){const cv=document.createElement('canvas');cv.width=38
     g.fillStyle='#f2efe8';g.textAlign='left';g.textBaseline='middle';g.fillText(text,x+76,cy+1);t.needsUpdate=true;};
   draw(null);const im=new Image();im.onload=()=>draw(im);im.src=castFace(key,'neutral');return s;}
 /* rigged Tripo+Mixamo NPC models (idle/walk); loaded lazily, figures are swapped out when ready */
-const RIG={intern:{file:'models/intern.json',tex:'models/intern_base.jpg',h:1.36},hr:{file:'models/hr.json',tex:'models/hr_base.jpg',h:1.29},facility:{file:'models/facility.json',tex:'models/facility_base.jpg',h:1.22}};
+const RIG={intern:{file:'models/intern.json',tex:'models/intern_base.jpg',h:1.36},hr:{file:'models/hr.json',tex:'models/hr_base.jpg',h:1.29},facility:{file:'models/facility.json',tex:'models/facility_base.jpg',h:1.22},analyst:{file:'models/analyst.json',tex:'models/analyst_base.jpg',h:1.31,nat:0.55}};
 const rigCache={};
 function loadRig(key){if(!rigCache[key])rigCache[key]=fetchGLB(RIG[key].file).then(glb=>new Promise((r,j)=>loader.parse(glb,new URL(RIG[key].file,location.href).href.replace(/[^/]*$/,''),r,j))).then(gl=>{const tex=new THREE.TextureLoader().load(RIG[key].tex);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=4;gl.mat=new THREE.MeshStandardMaterial({map:tex,roughness:0.85,metalness:0});return gl;}).catch(e=>{console.warn('rig',key,e);return null;});return rigCache[key];}
 function makeRigFig(key,gl){
@@ -1367,7 +1367,7 @@ function updateAgents(dt,t){
       const sw=moving?Math.sin(t*(a.key==='patch'?16:9)+a.ph)*0.6:0;
       if(a.key==='patch'){a.legs.forEach((l,i)=>l.rotation.x=(i===0||i===3?sw:-sw));a.tail.rotation.z=Math.sin(t*3+a.ph)*0.4;a.g.position.y=moving?Math.abs(Math.sin(t*16))*0.02:0;}
       else if(a.rig){const want=moving?'walk':'idle';if(a.anim!==want&&a.acts[want]){const from=a.acts[a.anim],to=a.acts[want];to.reset().play();if(from)to.crossFadeFrom(from,0.25,false);a.anim=want;}
-        if(a.acts.walk)a.acts.walk.timeScale=a.speed/(0.8*RIG[a.key].h);if(a.map===curMap)a.mixer.update(dt);}
+        if(a.acts.walk)a.acts.walk.timeScale=a.speed/((RIG[a.key].nat||0.8)*RIG[a.key].h);if(a.map===curMap)a.mixer.update(dt);}
       else{a.legs[0].rotation.x=sw;a.legs[1].rotation.x=-sw;a.arms[0].rotation.x=-sw*0.8;a.arms[1].rotation.x=sw*0.8;a.head.position.y=1.5+(moving?Math.abs(Math.sin(t*9+a.ph))*0.02:Math.sin(t*1.5+a.ph)*0.006);}
     }
     // speech bubbles
