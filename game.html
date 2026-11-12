@@ -1828,10 +1828,45 @@ function actsNear(){
     acts.push({key:'x:'+it.id,title:it.name+' (봉인됨)',tag:'오염 의심 장비 · 사용 금지',desc:'침입자가 1층에 있는 동안 남겨진 장비예요. 바꿔치기나 악성 코드 위험 때문에 외부 대응팀이 봉인했어요.',btn:'살펴보기',img:gearIcon(it.id,96),go:()=>toast(gearIcon(it.id,96),it.name+' — 봉인됨','비상 차단 동안 1층에 남아 있던 장비는 누가 손댔는지 확인할 수 없어요. 확인할 수 없는 장비는 쓰지 않는 것이 원칙이에요.')});}
   if(m==='bunker'){const cat=agents.find(a=>a.key==='patch'&&a.map==='bunker'&&!a.gone);if(cat&&Math.hypot(cat.g.position.x-p.x,cat.g.position.z-p.z)<1.1){const ok=S.patchDay!==S.day;
     acts.push({key:'c:'+(ok?1:0),title:ok?'패치와 놀아 주기':'패치 (오늘은 충분히 놀았어요)',tag:'벙커 고양이 · 하루 한 번',desc:ok?'잠깐 쉬면서 패치를 쓰다듬어 주면 체력이 '+PATCH_E+' 올라요.':'패치가 골골거리며 졸고 있어요. 내일 다시 놀아 줄 수 있어요.',btn:ok?'쓰다듬기':'살펴보기',img:castFace('patch','happy'),go:()=>petPatch(cat)});}}
+  if(m==='bunker'&&nearStation('rest',p)){const ok=S.napDay!==S.day,n=napE();
+    acts.push({key:'r:'+(ok?1:0),title:ok?'침상에서 잠깐 눈 붙이기':'휴게실 침상 (오늘은 이미 쉬었어요)',tag:'휴게실 · 하루 한 번',desc:ok?`잠깐 누워 쉬면 체력이 ${n} 올라요.`+(S.installed.blanket?' (담요 효과 포함)':' 담요를 깔아 두면 더 많이 회복돼요.'):'오늘은 이미 한숨 잤어요. 밤이 되면 다시 푹 쉴 수 있어요.',btn:ok?'쉬기':'살펴보기',img:face(player.key,ok?'exhausted':'neutral'),go:()=>napRest()});}
   if(near(SPOTS[m].stairs))acts.unshift({key:'s:'+m,title:m==='office'?'지하 벙커로 내려가기':'사무실로 올라가기',tag:'계단',desc:m==='office'?'벙커에는 관제석, 서버 케이지, 자료 금고가 있어요.':'사무실에는 인증실, 데이터 보관실, 서버실, 관제실이 있어요.',btn:m==='office'?'내려가기':'올라가기',img:face(player.key,'neutral'),go:()=>travel(player,m==='office'?'bunker':'office')});
   return acts;
 }
 const INFO_R=0.95,PATCH_E=10;
+/* 휴게실 침상 낮잠: 하루 한 번, 담요가 있으면 더 회복 */
+const napE=()=>S&&S.installed.blanket?18:12;
+async function napRest(){
+  if(UI.blocking)return;
+  if(S.napDay===S.day){toast(face(player.key,'neutral'),'휴게실 침상','오늘은 이미 한숨 잤어요. 밤이 되면 다시 푹 쉴 수 있어요.');return;}
+  target=null;path=null;keys.clear();S.napDay=S.day;const n=napE(),me=CK[player.key];
+  await talk([['sys','',S.installed.blanket?'담요를 덮고 침상에 누워 잠깐 눈을 붙였어요. 포근해서 금방 잠이 들었어요…':'딱딱한 침상에 누워 잠깐 눈을 붙였어요…'],
+    [me,'happy',['10분만 쉬었는데 머리가 한결 맑아졌어. 지치면 판단이 흐려지니까.','잠깐 쉬니까 살 것 같다. 다시 집중해 보자.','쉬는 것도 일이야. 이제 다시 시작!'][(S.day-1)%3]]]);
+  G.fx({E:n});sound.play('done');toast(face(player.key,'happy'),'잠깐 쉬었어요',`체력 +${n} · 휴게실 침상은 하루에 한 번 쓸 수 있어요.`);save();nearKey=null;
+}
+/* 체력이 낮을 때 픽스가 알려 주는 회복 방법 (30 이하 1번, 15 이하 1번 더 · 하루 단위) */
+let lowBusy=false;
+async function checkLowEnergy(){
+  if(lowBusy||AUTO||!S||S.fallen||PHASE!=='play'||UI.blocking||inGame||paused||!player)return;
+  const E=S.stats.E,lv=E<=15?2:E<=30?1:0;if(!lv)return;
+  const lw=S.lowWarn||{};if(lw.day===S.day&&lw.lv>=lv)return;
+  lowBusy=true;S.lowWarn={day:S.day,lv};save();
+  try{
+    const k=player.key,o=k==='juho'?'harin':'juho',slot=id=>S.bags[k].indexOf(id),inO=id=>(S.bags[o]||[]).includes(id);
+    const lines=[];if(lv===2)lines.push(['fix','worried','⚠ 경고! 체력이 거의 바닥이에요. 0이 되면 팀이 쓰러져서 7일을 끝까지 지킬 수 없어요. 지금 바로 쉬어 주세요!']);
+    let offer=null;const food=slot('food'),cof=slot('coffee');
+    if(food>=0){lines.push(['fix','worried',`${k==='harin'?'팀장님':'대리님'}, 손이 떨리고 계세요! 가방에 챙겨 온 ${GEAR.food.name}가 있어요. [${food+1}] 키를 눌러 드세요. 체력이 30 올라요.`]);offer={t:`${GEAR.food.name} 지금 열기 (체력 +30)`,id:'food'};}
+    else if(cof>=0){lines.push(['fix','worried',`눈꺼풀이 무거워 보여요… 가방 속 커피 한 잔 어떠세요? [${cof+1}] 키로 마실 수 있어요. 체력 +15!`]);offer={t:'커피 지금 마시기 (체력 +15)',id:'coffee'};}
+    else if(inO('food')||inO('coffee'))lines.push(['fix','worried',`${o==='harin'?'홍 팀장님':'서 대리님'} 가방에 ${inO('food')?GEAR.food.name:'커피'}가 있어요! Ctrl 키로 캐릭터를 바꿔서 꺼내 드세요.`]);
+    else if(S.patchDay!==S.day)lines.push(['fix','worried','삐빅… '+(player.map==='bunker'?'':'지하 ')+'벙커 바닥에서 작은 발소리가 들려요. 지친 사람에게 다가가는 걸 좋아하는 친구인데… 찾아보세요!']);
+    else if(S.napDay!==S.day)lines.push(['fix','worried','오늘은 무리하지 마세요. '+(player.map==='bunker'?'':'벙커 ')+'휴게실 침상에서 잠깐 눈을 붙이면 기운이 날 거예요. 쉬는 것도 보안 업무예요!']);
+    else lines.push(['fix','worried','오늘은 쓸 수 있는 회복 방법을 다 썼어요. 남은 일을 서둘러 마치면 밤에 푹 쉴 수 있어요. 무리한 선택은 피해 주세요!']);
+    sound.play(lv===2?'alert':'notify');
+    await talk(lines);
+    if(offer){const c=await choose({q:'지금 체력을 회복할까요?',opts:[{t:offer.t},{t:'나중에 할게요'}]});if(c.t===offer.t)eat(k,offer.id);}
+  }finally{lowBusy=false;}
+}
+
 function instSpot(id){const sl=INST_SLOT[id];return sl?[sl[0],sl[1]]:null;}
 async function petPatch(cat){
   if(UI.blocking)return;
@@ -2137,6 +2172,7 @@ function loop(){
   const agEl=$('ag');const canMove=player&&!UI.blocking&&((PHASE==='prep'&&CH.phase==='run')||PHASE==='play')&&(!agEl||agEl.hidden);
   if(canMove)step(dt);else if(player)player.moving=Math.max(0,player.moving-dt*8);
   if(PHASE==='play'&&!UI.blocking)stepPartner(dt);
+  if(PHASE==='play'&&!UI.blocking&&(loop.le=(loop.le||0)+1)%20===0)checkLowEnergy();
   for(const k in chars)animateChar(chars[k],t,dt);
   if(player)player.ring.material.opacity=0.55+0.3*Math.sin(t*4);
   if(PHASE==='prep'){
