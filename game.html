@@ -1274,7 +1274,7 @@ function nameTag(key,text){const cv=document.createElement('canvas');cv.width=38
     g.fillStyle='#f2efe8';g.textAlign='left';g.textBaseline='middle';g.fillText(text,x+76,cy+1);t.needsUpdate=true;};
   draw(null);const im=new Image();im.onload=()=>draw(im);im.src=castFace(key,'neutral');return s;}
 /* rigged Tripo+Mixamo NPC models (idle/walk); loaded lazily, figures are swapped out when ready */
-const RIG={intern:{file:'models/intern.json',tex:'models/intern_base.jpg',h:1.36},hr:{file:'models/hr.json',tex:'models/hr_base.jpg',h:1.29},facility:{file:'models/facility.json',tex:'models/facility_base.jpg',h:1.22},analyst:{file:'models/analyst.json',tex:'models/analyst_base.jpg',h:1.31,nat:0.55}};
+const RIG={intern:{file:'models/intern.json',tex:'models/intern_base.jpg',h:1.36},hr:{file:'models/hr.json',tex:'models/hr_base.jpg',h:1.29},facility:{file:'models/facility.json',tex:'models/facility_base.jpg',h:1.22},analyst:{file:'models/analyst.json',tex:'models/analyst_base.jpg',h:1.31,nat:0.55},courier:{file:'models/courier.json',tex:'models/courier_base.jpg',h:1.28,nat:1.0,box:[14,8,0]}};
 const rigCache={};
 function loadRig(key){if(!rigCache[key])rigCache[key]=fetchGLB(RIG[key].file).then(glb=>new Promise((r,j)=>loader.parse(glb,new URL(RIG[key].file,location.href).href.replace(/[^/]*$/,''),r,j))).then(gl=>{const tex=new THREE.TextureLoader().load(RIG[key].tex);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=4;gl.mat=new THREE.MeshStandardMaterial({map:tex,roughness:0.85,metalness:0});return gl;}).catch(e=>{console.warn('rig',key,e);return null;});return rigCache[key];}
 function makeRigFig(key,gl){
@@ -1282,6 +1282,11 @@ function makeRigFig(key,gl){
   m.traverse(o=>{if(o.isMesh){o.material=gl.mat;o.castShadow=true;o.frustumCulled=false;}});
   m.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(m);m.scale.multiplyScalar(RIG[key].h/Math.max(0.01,bb.max.y-bb.min.y));g.add(m);
   const mixer=new THREE.AnimationMixer(m),acts={};for(const cl of gl.animations)acts[cl.name]=mixer.clipAction(cl);
+  if(key==='courier'){const hand=m.getObjectByName('mixamorigRightHand');if(hand){/* 택배 상자 (손에 들고 다님) */
+    const bx=new THREE.Group(),cb=new THREE.Mesh(new THREE.BoxGeometry(26,20,20),new THREE.MeshStandardMaterial({color:0xc69b68,roughness:0.9}));cb.castShadow=true;bx.add(cb);
+    const tp=new THREE.Mesh(new THREE.BoxGeometry(26.4,4,20.4),new THREE.MeshStandardMaterial({color:0xe9d6a8,roughness:0.7}));bx.add(tp);
+    const lb=new THREE.Mesh(new THREE.PlaneGeometry(9,6),new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.6}));lb.position.set(5,-4,10.3);bx.add(lb);
+    bx.position.set(0,RIG.courier.box[0],RIG.courier.box[1]);bx.rotation.set(0,0,RIG.courier.box[2]);hand.add(bx);}}
   if(acts.idle){acts.idle.play();mixer.update(Math.random()*4);}
   const H=RIG[key].h,lab=nameTag(key,c.call);lab.position.set(0,H+0.32,0);g.add(lab);
   const bub=bubbleSprite();bub.position.set(0,H+0.8,0);g.add(bub);
