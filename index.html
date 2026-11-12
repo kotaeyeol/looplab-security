@@ -73,6 +73,26 @@ h1 span{display:block;color:#ffcf7a}
   .opt2{grid-template-columns:1fr}
 }
 @media (max-height:600px) and (min-width:761px){.btns button small{display:none}.btns{gap:7px;margin-top:14px}h1{font-size:40px}}
+
+/* 조작법 */
+#ovKeys .card{max-width:820px;padding:18px 22px}
+#ovKeys .row{margin-top:12px}
+.kgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.kbox{background:var(--panel2);border-radius:14px;padding:12px 14px}
+.kbox h3{font-family:var(--display);font-weight:400;font-size:18px;display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.kbox h3 em{font-style:normal;font-size:15px;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:#fff}
+.kr{display:grid;grid-template-columns:128px 1fr;align-items:center;gap:10px;padding:4px 0;font-size:14px;line-height:1.4}
+.kr+.kr{border-top:1px dashed rgba(44,39,51,.14)}
+.ks{display:flex;gap:4px;align-items:center;flex-wrap:wrap;min-width:118px}
+.ks i{font-style:normal;font-size:11.5px;color:var(--muted);margin:0 1px}
+kbd{display:inline-grid;place-items:center;min-width:28px;height:28px;padding:0 7px;font:700 13px var(--body);color:var(--ink);background:#fff;border:2px solid var(--line);border-radius:7px;box-shadow:0 3px 0 var(--line);line-height:1}
+kbd.w{min-width:64px}kbd.m{font-size:16px}
+.kr.big{grid-template-columns:auto 1fr}
+.wasd{display:grid;grid-template-columns:repeat(3,28px);grid-template-rows:28px 28px;gap:4px 3px}
+.wasd kbd{min-width:28px;padding:0}.wasd kbd:first-child{grid-column:2;grid-row:1}.wasd kbd:nth-child(n+2){grid-row:2}
+.ktip{margin-top:12px;background:#fff1b8;border-radius:12px;padding:9px 13px;font-size:13.5px;line-height:1.55;text-align:center;text-wrap:balance}
+#bKeys.new::after{content:'처음이면 먼저!';margin-left:auto;font:700 11px var(--body);color:#fff;background:var(--warn);border-radius:999px;padding:3px 9px;white-space:nowrap}
+@media (max-width:700px){.kgrid{grid-template-columns:1fr}.kr{grid-template-columns:112px 1fr}.kr.big{grid-template-columns:auto 1fr}}
 </style>
 
 <canvas id="c" aria-hidden="true"></canvas>
@@ -85,6 +105,7 @@ h1 span{display:block;color:#ffcf7a}
     <button class="go" id="bNew" type="button"><i>▶</i><span>새로 시작<small>60초 준비부터</small></span></button>
     <button id="bCont" type="button" disabled><i>⟳</i><span>이어하기<small id="contInfo">저장된 기록이 없어요</small></span></button>
     <button id="bEnd" type="button"><i>📖</i><span>엔딩 도감<small id="endInfo">0 / 10</small></span></button>
+    <button id="bKeys" type="button"><i>⌨️</i><span>조작법<small>키보드 · 마우스 · 터치 사용법</small></span></button>
     <button id="bTeach" type="button"><i>⚙️</i><span>설정<small>소리 크기, 난이도, 글자 크기, 저장 기록</small></span></button>
   </div>
   <p class="foot">기록은 이 기기의 브라우저에 자동 저장돼요. 다른 기기에서는 이어지지 않아요.</p>
@@ -110,6 +131,40 @@ h1 span{display:block;color:#ffcf7a}
   <div class="row"><button id="e1Close" type="button">도감으로 돌아가기</button></div>
 </div></div>
 
+<div id="ovKeys" class="ov" hidden><div class="card" role="dialog" aria-labelledby="kTitle">
+  <h2 id="kTitle">조작법</h2>
+  <p>키보드와 마우스로 해요. 태블릿은 화면을 눌러서 할 수 있어요.</p>
+  <div class="kgrid">
+    <div class="kbox"><h3><em style="background:#3d7fe0">🚶</em>움직이기</h3>
+      <div class="kr big"><span class="ks"><span class="wasd"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><i>또는</i><span class="wasd"><kbd class="m">↑</kbd><kbd class="m">←</kbd><kbd class="m">↓</kbd><kbd class="m">→</kbd></span></span><span>캐릭터 이동</span></div>
+      <div class="kr"><span class="ks"><kbd class="w">Shift</kbd><i>+ 이동</i></span><span>달리기</span></div>
+      <div class="kr"><span class="ks"><kbd>🖱</kbd><i>클릭</i></span><span>누른 곳으로 걸어가기 · 물건이나 사람을 누르면 그쪽으로 가요</span></div>
+      <div class="kr"><span class="ks"><kbd>🖱</kbd><i>휠</i></span><span>화면 확대 · 축소</span></div>
+    </div>
+    <div class="kbox"><h3><em style="background:#17a99a">✋</em>행동하기</h3>
+      <div class="kr"><span class="ks"><kbd class="w">Space</kbd></span><span>줍기 · 조사하기 · 대화 넘기기 (화면 아래 첫 번째 행동)</span></div>
+      <div class="kr"><span class="ks"><kbd>X</kbd><kbd>C</kbd><kbd>V</kbd></span><span>화면 아래 두 번째·세 번째·네 번째 행동</span></div>
+      <div class="kr"><span class="ks"><kbd>1</kbd><i>~</i><kbd>4</kbd></span><span>가방 속 장비·간식 쓰기 · 대화에서 선택지 고르기</span></div>
+      <div class="kr"><span class="ks"><kbd class="w">Ctrl</kbd></span><span>홍 팀장 ↔ 서 대리 조작 바꾸기</span></div>
+      <div class="kr"><span class="ks"><kbd>Q</kbd></span><span>60초 준비 때 일찍 벙커로 내려가기</span></div>
+    </div>
+    <div class="kbox"><h3><em style="background:#d9473a">🎮</em>미니게임</h3>
+      <div class="kr"><span class="ks"><kbd class="w">Space</kbd></span><span>설명 다음 장 · 게임 시작 · 결과 확인 후 계속</span></div>
+      <div class="kr"><span class="ks"><kbd>G</kbd></span><span>포기하기 (타자 게임은 G를 길게)</span></div>
+      <div class="kr"><span class="ks"><kbd>R</kbd></span><span>결과 화면에서 다시하기</span></div>
+      <div class="kr"><span class="ks"><i>게임마다 달라요</i></span><span>시작 전 설명 창과 화면 아래쪽에 그 게임의 키가 나와요</span></div>
+    </div>
+    <div class="kbox"><h3><em style="background:#7a5af5">⚙</em>화면 · 설정</h3>
+      <div class="kr"><span class="ks"><kbd>P</kbd></span><span>일시정지 · 소리 크기 · 난이도</span></div>
+      <div class="kr"><span class="ks"><kbd>M</kbd></span><span>배경음 켜기 · 끄기</span></div>
+      <div class="kr"><span class="ks"><kbd>F</kbd></span><span>전체 화면</span></div>
+      <div class="kr"><span class="ks"><kbd class="w">Esc</kbd></span><span>창 닫기 · 일시정지 풀기</span></div>
+      <div class="kr"><span class="ks"><kbd>R</kbd></span><span>처음부터 다시 (확인 창이 떠요)</span></div>
+    </div>
+  </div>
+  <div class="ktip">📱 <b>태블릿</b> — 화면을 톡 누르면 그곳으로 걸어가고, 두 손가락으로 벌리면 확대돼요. 행동은 화면 아래 버튼을 누르면 돼요.</div>
+  <div class="row"><button id="kClose" class="go" type="button">알겠어요!</button></div>
+</div></div>
 <div id="ovTeach" class="ov" hidden><div class="card" role="dialog" aria-labelledby="tTitle">
   <h2 id="tTitle">설정</h2>
   <div class="sw"><span>효과음·배경음</span><button id="tSound" type="button"></button></div>
@@ -163,6 +218,10 @@ function openEnding(id) { const [, t, who, ex, tone] = ENDS.find(e => e[0] === i
   const txt = id === 'E0' ? '보안 · 신뢰 · 체력 중 하나라도 0이 되면 7일을 채우지 못하고 끝나요. 쉬지 않고 일만 하면 팀이 쓰러지고, 신뢰를 잃으면 아무도 따르지 않고, 보안이 무너지면 관제실도 문을 닫아요.' : typeof E.text === 'function' ? E.text({}) : (E.text || '');
   $('e1Img').src = face(E.who || who, E.expr || ex); $('e1Tag').textContent = TONE_TAG[tone] || '엔딩'; $('e1Tag').style.background = tone; $('e1Title').textContent = t; $('e1Text').textContent = txt; $('ovEnd1').hidden = false; }
 $('e1Close').onclick = () => { $('ovEnd1').hidden = true; };
+const KSEEN = 'looplab_keys_seen'; let keysSeen = false; try { keysSeen = !!localStorage.getItem(KSEEN); } catch (_) { }
+if (!keysSeen) $('bKeys').classList.add('new');
+$('bKeys').onclick = () => { sound.play('click'); $('ovKeys').hidden = false; $('bKeys').classList.remove('new'); try { localStorage.setItem(KSEEN, '1'); } catch (_) { } };
+$('kClose').onclick = () => { sound.play('click'); $('ovKeys').hidden = true; };
 function syncTeach() {
   const s = store.settings();
     $('tSound').textContent = s.sound ? '켜짐' : '꺼짐'; $('tBig').textContent = s.bigText ? '켜짐' : '꺼짐';
@@ -173,7 +232,7 @@ $('tBig').onclick = () => { const s = store.settings(); s.bigText = !s.bigText; 
 $('tClear').onclick = () => { const b = $('tClear'); if (!b.dataset.arm) { b.dataset.arm = 1; b.textContent = '한 번 더 누르면 삭제'; b.classList.add('go'); return; } store.clear(); b.textContent = '삭제했어요'; b.disabled = true; $('bCont').disabled = true; $('contInfo').textContent = '저장된 기록이 없어요'; };
 $('tClose').onclick = () => { $('ovTeach').hidden = true; };
 /* 메뉴 단축키 (화면 표시 없이) */
-const HK = { bNew: 'N', bCont: 'Space', bEnd: 'E', bTeach: 'T', nYes: 'Space', nNo: 'X', eClose: 'Space', e1Close: 'Space', tSound: 'S', tBig: 'B', tClear: 'X', tClose: 'Space' };
+const HK = { bNew: 'N', bCont: 'Space', bEnd: 'E', bKeys: 'K', kClose: 'Space', bTeach: 'T', nYes: 'Space', nNo: 'X', eClose: 'Space', e1Close: 'Space', tSound: 'S', tBig: 'B', tClear: 'X', tClose: 'Space' };
 const CODE_OF = l => l === 'Space' ? 'Space' : 'Key' + l;
 addEventListener('keydown', e => {
   const open = [...document.querySelectorAll('.ov')].reverse().find(o => !o.hidden);
