@@ -1370,7 +1370,7 @@ void main(){float A=-dot(vP,vP);if(A<-4.)discard;float al=exp(A)*vK.a;if(al<.02)
 }
 
 /* 패치: 고정 자세(앉기·식빵) 3D 스캔. 날이 바뀌거나 벙커에 다시 내려올 때마다 자리·자세가 바뀜 */
-const CAT_POSE={sit:{file:'models/patch_sit.splat',h:0.5},loaf:{file:'models/patch_loaf.splat',h:0.34}};
+const CAT_POSE={sit:{file:'models/patch_sit.wasm',h:0.5},loaf:{file:'models/patch_loaf.wasm',h:0.34}};
 const CAT_SPOTS=[[3,2.5],[6,5.5],[-3,3],[-6,-2],[2,-2.6],[8.5,5.8],[-4,1.5]];
 const catBuf={};
 function loadCatPoses(){for(const k in CAT_POSE)if(!catBuf[k])catBuf[k]=fetch(CAT_POSE[k].file).then(r=>{if(!r.ok)throw r.status;return r.arrayBuffer();}).catch(e=>{console.warn('cat',k,e);return null;});return Promise.all(Object.values(catBuf));}
