@@ -1293,21 +1293,6 @@ function makeRigFig(key,gl){
   const bub=bubbleSprite();bub.position.set(0,H+0.8,0);g.add(bub);
   return {g,legs:[],arms:[],head:null,lab,bub,mixer,acts,anim:'idle',rig:true};
 }
-/* 패치: 리깅 없는 Tripo 모델 + 코드 애니메이션(걸음 흔들림, 숨쉬기, 꼬리 살랑) */
-function makeCatFig(key,gl){
-  const g=new THREE.Group(),body=new THREE.Group(),m=gl.scene.clone(true),uT={value:0};g.add(body);body.add(m);
-  m.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;o.frustumCulled=false;const ge=o.geometry;ge.computeBoundingBox();const bb=ge.boundingBox,P=ge.attributes.position,n=P.count,tw=new Float32Array(n);
-    const H=bb.max.y-bb.min.y,Lz=bb.max.z-bb.min.z,zc=bb.min.z+Lz*0.2,y0=bb.min.y+H*0.5,y1=bb.min.y+H*0.66;
-    for(let i=0;i<n;i++){const z=P.getZ(i),y=P.getY(i);if(z<zc){const t=Math.min(1,Math.max(0,(y-y0)/(y1-y0)));tw[i]=t*t*(3-2*t);}}
-    ge.setAttribute('tailW',new THREE.BufferAttribute(tw,1));const pv=new THREE.Vector3(0,y0,bb.min.z+Lz*0.12);
-    const mt=(gl.mat||o.material).clone();mt.onBeforeCompile=sh=>{sh.uniforms.uTail=uT;sh.uniforms.uPiv={value:pv};
-      sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute float tailW;uniform float uTail;uniform vec3 uPiv;')
-        .replace('#include <begin_vertex>','#include <begin_vertex>\n{float a=uTail*tailW;vec3 q=transformed-uPiv;float c=cos(a),s=sin(a);transformed=uPiv+vec3(c*q.x-s*q.y,s*q.x+c*q.y,q.z);}');};
-    mt.customProgramCacheKey=()=>'catTail';o.material=mt;});
-  m.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(m);m.scale.multiplyScalar(RIG[key].h/Math.max(0.01,bb.max.y-bb.min.y));
-  const lab=nameTag(key,'패치');lab.position.set(0,0.66,0);lab.scale.set(1.1,0.275,1);g.add(lab);const bub=bubbleSprite();bub.position.set(0,0.98,0);g.add(bub);
-  return {g,legs:[],arms:[],head:null,lab,bub,body,uT,rig:true,cat:true,anim:'idle',acts:{}};
-}
 function upgradeAgent(a){if(!RIG[a.key])return;loadRig(a.key).then(gl=>{if(!gl||a.gone||a.rig)return;const f=makeRigFig(a.key,gl),par=a.g.parent;
   f.g.position.copy(a.g.position);f.g.rotation.copy(a.g.rotation);if(par){par.remove(a.g);par.add(f.g);}
   f.bub.visible=a.bub.visible;if(a.bub.visible&&a.bub.userData.txt)f.bub.userData.set(a.bub.userData.txt);
@@ -1343,6 +1328,63 @@ function makeFixBot(){
   const bub=bubbleSprite();bub.position.set(0,0.95,0);g.add(bub);const lab=labelSprite('픽스');lab.position.set(0,0.72,0);g.add(lab);
   return {g,legs:[],arms:[],head:scr,lab,bub,tip};
 }
+/* ---- 가우시안 스플랫(고정 자세 고양이) 렌더러: .splat(28B/점) → 정렬된 인스턴스 사각형 ---- */
+function f16(h){const s=h&0x8000?-1:1,e=(h>>10)&31,m=h&1023;return e===0?s*m*5.960464477539063e-8:e===31?(m?NaN:s*Infinity):s*Math.pow(2,e-15)*(1+m/1024);}
+function makeSplat(buf,dim){
+  const n=buf.byteLength/28|0,dv=new DataView(buf),C=new Float32Array(n*3),A=new Float32Array(n*3),B=new Float32Array(n*3),K=new Float32Array(n*4);
+  for(let i=0;i<n;i++){const o=i*28;for(let k=0;k<3;k++)C[i*3+k]=dv.getFloat32(o+k*4,true);const c=[0,1,2,3,4,5].map(k=>f16(dv.getUint16(o+12+k*2,true)));
+    A[i*3]=c[0];A[i*3+1]=c[1];A[i*3+2]=c[2];B[i*3]=c[3];B[i*3+1]=c[4];B[i*3+2]=c[5];for(let k=0;k<4;k++)K[i*4+k]=dv.getUint8(o+24+k)/255;}
+  const g=new THREE.InstancedBufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute([-2,-2,0,2,-2,0,2,2,0,-2,2,0],3));g.setIndex([0,1,2,0,2,3]);
+  const src={c:C,a:A,b:B,k:K},at={};for(const [nm,arr,sz] of [['iC',C,3],['iA',A,3],['iB',B,3],['iK',K,4]]){at[nm]=new THREE.InstancedBufferAttribute(new Float32Array(arr),sz);at[nm].setUsage(THREE.DynamicDrawUsage);g.setAttribute(nm,at[nm]);}
+  g.instanceCount=n;
+  const mat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,depthTest:true,toneMapped:false,side:THREE.DoubleSide,
+    uniforms:{vp:{value:new THREE.Vector2(1,1)},dim:{value:dim||1}},
+    vertexShader:`attribute vec3 iC,iA,iB;attribute vec4 iK;uniform vec2 vp;varying vec4 vK;varying vec2 vP;
+void main(){vec4 cam=modelViewMatrix*vec4(iC,1.);vec4 clip=projectionMatrix*cam;float bd=1.2*clip.w;
+ if(clip.z<-clip.w||clip.x<-bd||clip.x>bd||clip.y<-bd||clip.y>bd){gl_Position=vec4(0.,0.,2.,1.);return;}
+ mat3 V=mat3(iA.x,iA.y,iA.z,iA.y,iB.x,iB.y,iA.z,iB.y,iB.z);
+ float fx=projectionMatrix[0][0]*vp.x*.5,fy=projectionMatrix[1][1]*vp.y*.5,z=cam.z;
+ mat3 J=mat3(fx/z,0.,0.,0.,fy/z,0.,-(fx*cam.x)/(z*z),-(fy*cam.y)/(z*z),0.);
+ mat3 T=J*mat3(modelViewMatrix);mat3 c2=T*V*transpose(T);
+ float a=c2[0][0]+.3,b=c2[0][1],d=c2[1][1]+.3;float mid=.5*(a+d),rad=length(vec2(.5*(a-d),b));
+ float l1=mid+rad,l2=max(mid-rad,.1);vec2 dv=a>=d?vec2(l1-d,b):vec2(b,l1-a);vec2 dg=dot(dv,dv)>1e-12?normalize(dv):vec2(1.,0.);
+ vec2 M1=min(sqrt(2.*l1),512.)*dg,M2=min(sqrt(2.*l2),512.)*vec2(dg.y,-dg.x);
+ vK=iK;vP=position.xy;vec2 ctr=clip.xy/clip.w;
+ gl_Position=vec4(ctr+(position.x*M1+position.y*M2)/vp,clip.z/clip.w,1.);}`,
+    fragmentShader:`uniform float dim;varying vec4 vK;varying vec2 vP;
+void main(){float A=-dot(vP,vP);if(A<-4.)discard;float al=exp(A)*vK.a;if(al<.02)discard;
+ gl_FragColor=vec4(pow(vK.rgb,vec3(2.2))*dim,al);
+ #include <colorspace_fragment>
+}`});
+  const mesh=new THREE.Mesh(g,mat);mesh.frustumCulled=false;mesh.renderOrder=5;
+  const depth=new Float32Array(n),idx=new Uint32Array(n),cnt=new Uint32Array(65536),tmp=new Uint16Array(n),sz=new THREE.Vector2(),mv=new THREE.Matrix4();let last=null,frame=0;
+  mesh.onBeforeRender=(r,sc,cam)=>{r.getDrawingBufferSize(sz);mat.uniforms.vp.value.copy(sz);
+    mv.multiplyMatrices(cam.matrixWorldInverse,mesh.matrixWorld);const e=mv.elements,key=e.map(v=>v.toFixed(3)).join();if(key===last||(frame++%3))return;last=key;
+    let mn=1e9,mx=-1e9;for(let i=0;i<n;i++){const d=e[2]*C[i*3]+e[6]*C[i*3+1]+e[10]*C[i*3+2];depth[i]=d;if(d<mn)mn=d;if(d>mx)mx=d;}
+    const sc2=65535/Math.max(1e-6,mx-mn);cnt.fill(0);for(let i=0;i<n;i++){const k=((depth[i]-mn)*sc2)|0;tmp[i]=k;cnt[k]++;}
+    for(let i=1;i<65536;i++)cnt[i]+=cnt[i-1];for(let i=n-1;i>=0;i--)idx[--cnt[tmp[i]]]=i; // 먼 것(작은 z)부터
+    const dc=at.iC.array,da=at.iA.array,db=at.iB.array,dk=at.iK.array;
+    for(let j=0;j<n;j++){const i=idx[j];dc[j*3]=C[i*3];dc[j*3+1]=C[i*3+1];dc[j*3+2]=C[i*3+2];da[j*3]=A[i*3];da[j*3+1]=A[i*3+1];da[j*3+2]=A[i*3+2];db[j*3]=B[i*3];db[j*3+1]=B[i*3+1];db[j*3+2]=B[i*3+2];dk[j*4]=K[i*4];dk[j*4+1]=K[i*4+1];dk[j*4+2]=K[i*4+2];dk[j*4+3]=K[i*4+3];}
+    for(const k in at)at[k].needsUpdate=true;};
+  return mesh;
+}
+
+/* 패치: 고정 자세(앉기·식빵) 3D 스캔. 날이 바뀌거나 벙커에 다시 내려올 때마다 자리·자세가 바뀜 */
+const CAT_POSE={sit:{file:'models/patch_sit.splat',h:0.5},loaf:{file:'models/patch_loaf.splat',h:0.34}};
+const CAT_SPOTS=[[3,2.5],[6,5.5],[-3,3],[-6,-2],[2,-2.6],[8.5,5.8],[-4,1.5]];
+const catBuf={};
+function loadCatPoses(){for(const k in CAT_POSE)if(!catBuf[k])catBuf[k]=fetch(CAT_POSE[k].file).then(r=>{if(!r.ok)throw r.status;return r.arrayBuffer();}).catch(e=>{console.warn('cat',k,e);return null;});return Promise.all(Object.values(catBuf));}
+function placeCat(){
+  const a=agents.find(q=>q.key==='patch'&&q.map==='bunker'&&!q.gone);if(!a||!S)return;
+  const seed=(S.day||1)*5+(S.catMove||0)*3,sp=CAT_SPOTS[seed%CAT_SPOTS.length],pose=((S.day||1)+(S.catMove||0))%2?'loaf':'sit';
+  a.g.position.set(sp[0],0,sp[1]);a.g.rotation.y=Math.atan2(-sp[0],-sp[1])+((seed%5)-2)*0.35;a.path=null;a.pts=[sp];a.wait=1e9;a.pose=pose;
+  loadCatPoses().then(()=>{if(a.gone)return;
+    if(!a.splats){a.splats={};for(const k in CAT_POSE)if(catBuf[k]){Promise.resolve(catBuf[k]).then(b=>{if(!b||a.gone)return;const m=makeSplat(b,0.92);m.rotation.y=-Math.PI/2;m.visible=false;a.g.add(m);a.splats[k]=m;showPose(a);});}}
+    else showPose(a);});
+}
+function showPose(a){const have=a.splats&&a.splats[a.pose];if(!have)return;for(const k in a.splats)a.splats[k].visible=k===a.pose;
+  a.g.children.forEach(c=>{if(c.isMesh&&!c.isSprite&&!Object.values(a.splats).includes(c))c.visible=false;});
+  const h=CAT_POSE[a.pose].h;a.lab.position.y=h+0.2;a.bub.position.y=h+0.5;a.splat=true;}
 function makeCat(){
   const g=new THREE.Group(),o=mat(0xe3a35b,{r:0.8}),w=mat(0xf6efe4,{r:0.8}),k=mat(0x3a2f2a,{r:0.8});
   const body=new THREE.Mesh(new THREE.SphereGeometry(0.16,16,12),o);body.scale.set(0.8,0.75,1.5);body.position.y=0.2;body.castShadow=true;g.add(body);
@@ -1368,7 +1410,7 @@ function spawnAgent(key,map,at){
   const pts=AGPT[map][key]||WANDER[map];const p=at||pts[0];
   (map==='office'?OFF:BUN).add(f.g);f.g.position.set(p[0],key==='fix'?0.78:0,p[1]);
   const a={key,map,...f,pts,i:0,path:null,wait:1+Math.random()*3,speed:key==='patch'?0.9:key==='fix'?0.4:1.05,ph:Math.random()*9,bubT:4+Math.random()*8,bubOn:0,leaving:false,gone:false};
-  agents.push(a);upgradeAgent(a);return a;
+  agents.push(a);upgradeAgent(a);if(key==='patch'&&map==='bunker'){a.pts=[p];a.wait=1e9;setTimeout(placeCat,0);}return a;
 }
 function removeAgent(a){a.gone=true;a.g.parent&&a.g.parent.remove(a.g);const i=agents.indexOf(a);if(i>=0)agents.splice(i,1);}
 function agentLeave(key,map){const a=agents.find(q=>q.key===key&&q.map===map);if(!a)return;a.leaving=true;const st=SPOTS[map].stairs;a.path=findPath(map,a.g.position.x,a.g.position.z,st[0],st[1]);a.wait=0;}
@@ -1384,10 +1426,11 @@ function updateAgents(dt,t){
         if(d<0.1)a.path.shift();else if(!blockedByPlayer){const s=Math.min(d,a.speed*dt);p.x+=dx/d*s;p.z+=dz/d*s;moving=true;const want=Math.atan2(dx,dz);let df=((want-a.g.rotation.y+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;a.g.rotation.y+=df*Math.min(1,dt*8);}
         if(!a.path.length){a.path=null;a.wait=a.key==='patch'?2+Math.random()*5:4+Math.random()*6;if(a.leaving){removeAgent(a);continue;}}}
       else if(!a.leaving&&a.pts.length>1){a.wait-=dt;if(a.wait<=0){a.i=(a.i+1+Math.floor(Math.random()*(a.pts.length-1)))%a.pts.length;const q=a.pts[a.i];a.path=findPath(a.map,p.x,p.z,q[0],q[1]);if(!a.path)a.wait=2;}}
-      else if(!a.leaving&&player&&player.map===a.map){const ang=Math.atan2(player.root.position.x-p.x,player.root.position.z-p.z);if(Math.hypot(player.root.position.x-p.x,player.root.position.z-p.z)<3)a.g.rotation.y+=(((ang-a.g.rotation.y+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI)*Math.min(1,dt*3);}
+      else if(!a.leaving&&!a.splat&&player&&player.map===a.map){const ang=Math.atan2(player.root.position.x-p.x,player.root.position.z-p.z);if(Math.hypot(player.root.position.x-p.x,player.root.position.z-p.z)<3)a.g.rotation.y+=(((ang-a.g.rotation.y+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI)*Math.min(1,dt*3);}
       const sw=moving?Math.sin(t*(a.key==='patch'?16:9)+a.ph)*0.6:0;
-      if(a.key==='patch'&&!a.cat){a.legs.forEach((l,i)=>l.rotation.x=(i===0||i===3?sw:-sw));a.tail.rotation.z=Math.sin(t*3+a.ph)*0.4;a.g.position.y=moving?Math.abs(Math.sin(t*16))*0.02:0;}
-      else if(a.cat){a.uT.value=Math.sin(t*(moving?7:2.6)+a.ph)*(moving?0.32:0.22);a.body.position.y=moving?Math.abs(Math.sin(t*13+a.ph))*0.025:0;a.body.rotation.z=moving?Math.sin(t*13+a.ph)*0.05:0;a.body.scale.y=1+(moving?0:Math.sin(t*2.2+a.ph)*0.018);}
+      if(a.key==='patch'&&a.splat){}
+      else if(a.key==='patch'&&!a.cat){a.legs.forEach((l,i)=>l.rotation.x=(i===0||i===3?sw:-sw));a.tail.rotation.z=Math.sin(t*3+a.ph)*0.4;a.g.position.y=moving?Math.abs(Math.sin(t*16))*0.02:0;}
+      else if(false){a.uT.value=Math.sin(t*(moving?7:2.6)+a.ph)*(moving?0.32:0.22);a.body.position.y=moving?Math.abs(Math.sin(t*13+a.ph))*0.025:0;a.body.rotation.z=moving?Math.sin(t*13+a.ph)*0.05:0;a.body.scale.y=1+(moving?0:Math.sin(t*2.2+a.ph)*0.018);}
       else if(a.rig){const want=moving?'walk':'idle';if(a.anim!==want&&a.acts[want]){const from=a.acts[a.anim],to=a.acts[want];to.reset().play();if(from)to.crossFadeFrom(from,0.25,false);a.anim=want;}
         if(a.acts.walk)a.acts.walk.timeScale=a.speed/((RIG[a.key].nat||0.8)*RIG[a.key].h);if(a.map===curMap)a.mixer.update(dt);}
       else{a.legs[0].rotation.x=sw;a.legs[1].rotation.x=-sw;a.arms[0].rotation.x=-sw*0.8;a.arms[1].rotation.x=sw*0.8;a.head.position.y=1.5+(moving?Math.abs(Math.sin(t*9+a.ph))*0.02:Math.sin(t*1.5+a.ph)*0.006);}
@@ -1426,6 +1469,7 @@ async function fade(text,fn){fadeEl.textContent=text||'';fadeEl.classList.add('o
 async function travel(ch,to){
   if(UI.blocking)return;UI.blocking=true;target=null;path=null;hideCard();sound.play('door');
   await fade(to==='bunker'?'지하 벙커로 내려가는 중…':'사무실로 올라가는 중…',()=>{
+    if(to==='bunker'&&ch===player&&S){S.catMove=(S.catMove||0)+1;placeCat();}
     ch.map=to;ch.reach=null;ch.badge=null;if(PHASE==='play'&&S)G.fx({E:-1});const [x,z]=ARRIVE[to];ch.root.position.set(x,0,z);ch.heading=to==='bunker'?Math.PI*0.75:-Math.PI/2;ch.root.rotation.y=ch.heading;ch.moving=0;
     const other=ch===chars.juho?chars.harin:chars.juho;if(other.map===to&&Math.hypot(other.root.position.x-x,other.root.position.z-z)<0.8)ch.root.position.x+=0.9;
     if(ch===player)setMap(to);else ch.root.visible=ch.map===curMap;
@@ -1880,7 +1924,7 @@ async function checkLowEnergy(){
     if(food>=0){lines.push(['fix','worried',`${k==='harin'?'팀장님':'대리님'}, 손이 떨리고 계세요! 가방에 챙겨 온 ${GEAR.food.name}가 있어요. [${food+1}] 키를 눌러 드세요. 체력이 30 올라요.`]);offer={t:`${GEAR.food.name} 지금 열기 (체력 +30)`,id:'food'};}
     else if(cof>=0){lines.push(['fix','worried',`눈꺼풀이 무거워 보여요… 가방 속 커피 한 잔 어떠세요? [${cof+1}] 키로 마실 수 있어요. 체력 +15!`]);offer={t:'커피 지금 마시기 (체력 +15)',id:'coffee'};}
     else if(inO('food')||inO('coffee'))lines.push(['fix','worried',`${o==='harin'?'홍 팀장님':'서 대리님'} 가방에 ${inO('food')?GEAR.food.name:'커피'}가 있어요! Ctrl 키로 캐릭터를 바꿔서 꺼내 드세요.`]);
-    else if(S.patchDay!==S.day)lines.push(['fix','worried','삐빅… '+(player.map==='bunker'?'':'지하 ')+'벙커 바닥에서 작은 발소리가 들려요. 지친 사람에게 다가가는 걸 좋아하는 친구인데… 찾아보세요!']);
+    else if(S.patchDay!==S.day)lines.push(['fix','worried','삐빅… '+(player.map==='bunker'?'':'지하 ')+'벙커 어딘가에서 작게 「야옹」 소리가 들려요. 지친 사람 곁에 있어 주는 걸 좋아하는 친구인데… 찾아보세요!']);
     else if(S.napDay!==S.day)lines.push(['fix','worried','오늘은 무리하지 마세요. '+(player.map==='bunker'?'':'벙커 ')+'휴게실 침상에서 잠깐 눈을 붙이면 기운이 날 거예요. 쉬는 것도 보안 업무예요!']);
     else lines.push(['fix','worried','오늘은 쓸 수 있는 회복 방법을 다 썼어요. 남은 일을 서둘러 마치면 밤에 푹 쉴 수 있어요. 무리한 선택은 피해 주세요!']);
     sound.play(lv===2?'alert':'notify');
@@ -2230,7 +2274,7 @@ function loop(){
 
 /* ================= 시작 ================= */
 Promise.all([loadModel('juho'),loadModel('harin')]).then(async([j,h])=>{
-  chars.juho=makeChar('juho',j);chars.harin=makeChar('harin',h);setTimeout(()=>Object.keys(RIG).forEach(loadRig),3000);chars.juho.map='office';chars.harin.map='office';
+  chars.juho=makeChar('juho',j);chars.harin=makeChar('harin',h);setTimeout(()=>{Object.keys(RIG).forEach(loadRig);loadCatPoses();},3000);chars.juho.map='office';chars.harin.map='office';
   $('loading').hidden=true;
   updateStatusBoard();
   const saved=QS.get('new')?null:store.load();
@@ -2247,7 +2291,7 @@ Promise.all([loadModel('juho'),loadModel('harin')]).then(async([j,h])=>{
   renderSwap();
 }).catch(err=>{$('loadText').textContent='모델을 불러오지 못했어요. models 폴더를 확인해 주세요.';console.error(err);});
 loop();
-window.__dbg={get S(){return S},G,spawnAgent,get PHASE(){return PHASE},get player(){return player},get chars(){return chars},agents,doTask,DAYS,startDay,setControl,travel,goTo,take,startChallenge,endChallenge,CH,activeTasks,install,talk,dlgAdvance,get curMap(){return curMap},UI,camera,
+window.__dbg={get S(){return S},G,spawnAgent,placeCat,get PHASE(){return PHASE},get player(){return player},get chars(){return chars},agents,doTask,DAYS,startDay,setControl,travel,goTo,take,startChallenge,endChallenge,CH,activeTasks,install,talk,dlgAdvance,get curMap(){return curMap},UI,camera,
   teleport(x,z){player.root.position.set(x,0,z);camSnap=true;},endDay,petPatch,showEnding,findPath,blockedStatic,COLL};
 
 </script>
