@@ -1338,9 +1338,9 @@ function makeSplat(buf,dim){
   const src={c:C,a:A,b:B,k:K},at={};for(const [nm,arr,sz] of [['iC',C,3],['iA',A,3],['iB',B,3],['iK',K,4]]){at[nm]=new THREE.InstancedBufferAttribute(new Float32Array(arr),sz);at[nm].setUsage(THREE.DynamicDrawUsage);g.setAttribute(nm,at[nm]);}
   g.instanceCount=n;
   const mat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,depthTest:true,toneMapped:false,side:THREE.DoubleSide,
-    uniforms:{vp:{value:new THREE.Vector2(1,1)},dim:{value:dim||1}},
-    vertexShader:`attribute vec3 iC,iA,iB;attribute vec4 iK;uniform vec2 vp;varying vec4 vK;varying vec2 vP;
-void main(){vec4 cam=modelViewMatrix*vec4(iC,1.);vec4 clip=projectionMatrix*cam;float bd=1.2*clip.w;
+    uniforms:{vp:{value:new THREE.Vector2(1,1)},dim:{value:dim||1},tint:{value:new THREE.Color(1,1,1)},hH:{value:0.5},br:{value:0}},
+    vertexShader:`attribute vec3 iC,iA,iB;attribute vec4 iK;uniform vec2 vp;uniform float br;varying vec4 vK;varying vec2 vP;varying float vY;
+void main(){vY=iC.y;vec4 cam=modelViewMatrix*vec4(iC.x,iC.y*(1.+br),iC.z,1.);vec4 clip=projectionMatrix*cam;float bd=1.2*clip.w;
  if(clip.z<-clip.w||clip.x<-bd||clip.x>bd||clip.y<-bd||clip.y>bd){gl_Position=vec4(0.,0.,2.,1.);return;}
  mat3 V=mat3(iA.x,iA.y,iA.z,iA.y,iB.x,iB.y,iA.z,iB.y,iB.z);
  float fx=projectionMatrix[0][0]*vp.x*.5,fy=projectionMatrix[1][1]*vp.y*.5,z=cam.z;
@@ -1351,9 +1351,10 @@ void main(){vec4 cam=modelViewMatrix*vec4(iC,1.);vec4 clip=projectionMatrix*cam;
  vec2 M1=min(sqrt(2.*l1),512.)*dg,M2=min(sqrt(2.*l2),512.)*vec2(dg.y,-dg.x);
  vK=iK;vP=position.xy;vec2 ctr=clip.xy/clip.w;
  gl_Position=vec4(ctr+(position.x*M1+position.y*M2)/vp,clip.z/clip.w,1.);}`,
-    fragmentShader:`uniform float dim;varying vec4 vK;varying vec2 vP;
+    fragmentShader:`uniform float dim,hH;uniform vec3 tint;varying vec4 vK;varying vec2 vP;varying float vY;
 void main(){float A=-dot(vP,vP);if(A<-4.)discard;float al=exp(A)*vK.a;if(al<.02)discard;
- gl_FragColor=vec4(pow(vK.rgb,vec3(2.2))*dim,al);
+ float ao=mix(.28,1.,smoothstep(0.,.14,vY)),top=mix(.9,1.08,smoothstep(0.,hH,vY));
+ gl_FragColor=vec4(pow(vK.rgb,vec3(2.2))*dim*ao*top*tint,al);
  #include <colorspace_fragment>
 }`});
   const mesh=new THREE.Mesh(g,mat);mesh.frustumCulled=false;mesh.renderOrder=5;
@@ -1382,8 +1383,20 @@ function placeCat(){
     if(!a.splats){a.splats={};for(const k in CAT_POSE)if(catBuf[k]){Promise.resolve(catBuf[k]).then(b=>{if(!b||a.gone)return;const m=makeSplat(b,0.92);m.rotation.y=-Math.PI/2;m.visible=false;a.g.add(m);a.splats[k]=m;showPose(a);});}}
     else showPose(a);});
 }
-function showPose(a){const have=a.splats&&a.splats[a.pose];if(!have)return;for(const k in a.splats)a.splats[k].visible=k===a.pose;
-  a.g.children.forEach(c=>{if(c.isMesh&&!c.isSprite&&!Object.values(a.splats).includes(c))c.visible=false;});
+let catShTex=null;
+function catShadow(){if(!catShTex)catShTex=canvasTex(128,128,(g,w,h)=>{const r=g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);r.addColorStop(0,'rgba(6,4,10,.92)');r.addColorStop(.5,'rgba(6,4,10,.72)');r.addColorStop(.78,'rgba(6,4,10,.26)');r.addColorStop(1,'rgba(8,6,14,0)');g.fillStyle=r;g.fillRect(0,0,w,h);});
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:catShTex,transparent:true,depthWrite:false,toneMapped:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));m.rotation.x=-Math.PI/2;m.renderOrder=4;return m;}
+const _lp=new THREE.Vector3(),_lc=new THREE.Color();
+function catLight(a){ // 주변 조명 색·밝기를 스캔 색에 입힘
+  const p=a.g.position;let r=0.9,g=0.8,b=0.72,tot=0;
+  BUN.traverse(o=>{if(!o.isPointLight)return;o.getWorldPosition(_lp);const d=Math.hypot(_lp.x-p.x,_lp.y-0.25,_lp.z-p.z);if(d>=o.distance)return;const w=o.intensity*Math.pow(1-d/o.distance,o.decay||1)*0.22;_lc.copy(o.color);r+=_lc.r*w;g+=_lc.g*w;b+=_lc.b*w;tot+=w;});
+  const mx=Math.max(r,g,b),k=0.6,br=0.45+Math.min(0.2,tot*0.13);return [(1-k+k*r/mx)*br,(1-k+k*g/mx)*br,(1-k+k*b/mx)*br];}
+function showPose(a){const have=a.splats&&a.splats[a.pose];if(!have)return;
+  if(!a.shadow){a.shadow=catShadow();a.g.add(a.shadow);}
+  {const sz=a.pose==='loaf'?[0.92,0.84]:[0.86,0.72],ry=a.g.rotation.y,ox=0.07,oz=-0.08;a.shadow.scale.set(sz[0],sz[1],1);a.shadow.position.set(ox*Math.cos(ry)-oz*Math.sin(ry),0.012,ox*Math.sin(ry)+oz*Math.cos(ry));
+   const u=have.material.uniforms,c=catLight(a);u.tint.value.setRGB(c[0],c[1],c[2]);u.hH.value=CAT_POSE[a.pose].h;}
+for(const k in a.splats)a.splats[k].visible=k===a.pose;
+  a.g.children.forEach(c=>{if(c.isMesh&&!c.isSprite&&c!==a.shadow&&!Object.values(a.splats).includes(c))c.visible=false;});
   const h=CAT_POSE[a.pose].h;a.lab.position.y=h+0.2;a.bub.position.y=h+0.5;a.splat=true;}
 function makeCat(){
   const g=new THREE.Group(),o=mat(0xe3a35b,{r:0.8}),w=mat(0xf6efe4,{r:0.8}),k=mat(0x3a2f2a,{r:0.8});
@@ -1428,7 +1441,7 @@ function updateAgents(dt,t){
       else if(!a.leaving&&a.pts.length>1){a.wait-=dt;if(a.wait<=0){a.i=(a.i+1+Math.floor(Math.random()*(a.pts.length-1)))%a.pts.length;const q=a.pts[a.i];a.path=findPath(a.map,p.x,p.z,q[0],q[1]);if(!a.path)a.wait=2;}}
       else if(!a.leaving&&!a.splat&&player&&player.map===a.map){const ang=Math.atan2(player.root.position.x-p.x,player.root.position.z-p.z);if(Math.hypot(player.root.position.x-p.x,player.root.position.z-p.z)<3)a.g.rotation.y+=(((ang-a.g.rotation.y+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI)*Math.min(1,dt*3);}
       const sw=moving?Math.sin(t*(a.key==='patch'?16:9)+a.ph)*0.6:0;
-      if(a.key==='patch'&&a.splat){}
+      if(a.key==='patch'&&a.splat){const m=a.splats[a.pose];if(m)m.material.uniforms.br.value=Math.sin(t*1.6+a.ph)*0.013;}
       else if(a.key==='patch'&&!a.cat){a.legs.forEach((l,i)=>l.rotation.x=(i===0||i===3?sw:-sw));a.tail.rotation.z=Math.sin(t*3+a.ph)*0.4;a.g.position.y=moving?Math.abs(Math.sin(t*16))*0.02:0;}
       else if(false){a.uT.value=Math.sin(t*(moving?7:2.6)+a.ph)*(moving?0.32:0.22);a.body.position.y=moving?Math.abs(Math.sin(t*13+a.ph))*0.025:0;a.body.rotation.z=moving?Math.sin(t*13+a.ph)*0.05:0;a.body.scale.y=1+(moving?0:Math.sin(t*2.2+a.ph)*0.018);}
       else if(a.rig){const want=moving?'walk':'idle';if(a.anim!==want&&a.acts[want]){const from=a.acts[a.anim],to=a.acts[want];to.reset().play();if(from)to.crossFadeFrom(from,0.25,false);a.anim=want;}
