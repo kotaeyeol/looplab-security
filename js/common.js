@@ -275,6 +275,7 @@ export const sound = {
       case 'go': this.tone(1320, 0.32, 'square', 0.08); this.tone(1760, 0.32, 'sine', 0.14, 0.02); break;
       case 'count': this.tone(1500, 0.025, 'triangle', 0.05); break;
       // 점수 효과음: 높음(팡파르) · 보통(밝은 3음) · 낮음(내려가는 소리)
+      case 'land': this.tone(196, 0.09, 'sine', 0.16); this.tone(294, 0.07, 'triangle', 0.08, 0.02); break;
       case 'get': [587, 740, 880, 1175].forEach((f, i) => this.tone(f, 0.15, 'triangle', 0.2, i * 0.11)); this.tone(1175, 0.75, 'sine', 0.15, 0.44); this.tone(1480, 0.75, 'sine', 0.11, 0.44); this.tone(1760, 0.8, 'sine', 0.08, 0.5); break;
       case 'scoreHi': [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.16, 'triangle', 0.2, i * 0.09)); this.tone(1047, 0.5, 'sine', 0.16, 0.36); this.tone(1319, 0.5, 'sine', 0.12, 0.36); this.tone(1568, 0.6, 'sine', 0.1, 0.42); break;
       case 'scoreMid': this.tone(523, 0.12, 'triangle', 0.18); this.tone(659, 0.12, 'triangle', 0.18, 0.1); this.tone(784, 0.3, 'triangle', 0.18, 0.2); break;

@@ -213,6 +213,9 @@ button.go{background:var(--warn);color:#fff}
 .slot.inst{opacity:.4}
 .slot .cnt{position:absolute;right:1px;bottom:0;font-size:9.5px;font-weight:700;color:#fff;background:#6b9e3a;border-radius:6px;padding:0 3px}
 #card .row button+button{margin-left:0}
+.slot.dropped{animation:sdrop .42s ease-out}
+@keyframes sdrop{0%{transform:scale(.8);background:#ffe9a8;border-color:#e0a81e}60%{transform:scale(1.08)}100%{transform:none}}
+@media (prefers-reduced-motion:reduce){.slot.dropped{animation:none}}
 #get{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translate(-50%,130%);opacity:0;transition:transform .34s cubic-bezier(.3,1.4,.5,1),opacity .2s;z-index:8;width:min(640px,calc(100vw - 28px));background:var(--panel);border:2.5px solid var(--line);border-radius:20px;box-shadow:0 6px 0 var(--line),0 0 0 6px rgba(255,215,94,.35);display:grid;grid-template-columns:118px 1fr;gap:16px;padding:16px 18px 16px 16px;align-items:center;pointer-events:none}
 #get.show{transform:translate(-50%,0);opacity:1;pointer-events:auto}
 #get .gIcon{position:relative;width:118px;height:118px;display:grid;place-items:center}
@@ -1874,7 +1877,7 @@ function animateChar(ch,t,dt){
     else{const want=ch.moving>0.3?(ch.gait==='run'?'run':'walk'):'idle';const wf=ch===player?wetFactor():1;
       play(ch,want,0.22,(want==='run'?ch.info.runTs:want==='walk'?ch.info.walkTs:1)*(want==='idle'?1:Math.max(0.6,wf)));}}
   if(ch.root.visible)ch.mixer.update(dt);
-  updateReach(ch,dt);updateBadge(ch,dt);
+  updateReach(ch,dt);updateToss(ch,dt);updateBadge(ch,dt);
 }
 
 /* ================= 표시(마커) · 길 안내 ================= */
@@ -2200,13 +2203,13 @@ function updateGet(dt,t){if(!GET)return;const G2=GET;G2.t+=dt;const u=Math.min(1
 function closeGet(keep,silent){if(!GET)return;const it=GET.it;scene.remove(GET.grp);GET=null;$('get').classList.remove('show');timerEl.classList.remove('hold');
   if(player){player.busy=0;play(player,'idle',0.25);}keys.clear();
   if(silent)return;
-  if(!keep){for(const k of ['juho','harin']){const i=BAGS[k].indexOf(it);if(i>=0)BAGS[k].splice(i,1);}it.taken=false;it.owner=null;hideItem(it,true);renderBag();sound.play('click');}
+  if(!keep){for(const k of ['juho','harin']){const i=BAGS[k].indexOf(it);if(i>=0)BAGS[k].splice(i,1);}it.taken=false;it.owner=null;renderBag();sound.play('click');flyBack(it,player);}
   else{const left=TOTAL-BAGS.juho.length-BAGS.harin.length;toast(face(player.key,'happy'),it.name+' 챙김!',left?`팀 가방 ${left}칸 남음`:'팀 가방이 가득 찼어요!');}
   if(CH.phase==='hold')CH.phase='run';}
 hk($('getOk'),'Space',true);hk($('getBack'),'X',true);$('getOk').onclick=()=>GET&&GET.t>0.5&&closeGet(true);$('getBack').onclick=()=>GET&&GET.t>0.5&&closeGet(false);
 function hideItem(it,on){it.obj.visible=it.holo.visible=it.beam.visible=it.halo.visible=it.halo2.visible=on;it.ring.material.opacity=on?1:0.25;}
 function take(id){
-  const it=gear.find(g=>g.id===id);if(!it||it.taken||!player||player.busy>0||CH.phase!=='run')return;
+  const it=gear.find(g=>g.id===id);if(!it||it.taken||it.fly||!player||player.busy>0||CH.phase!=='run')return;
   const mine=BAGS[player.key];
   if(mine.length>=CAP[player.key]){const other=npc.key,room=CAP[other]-BAGS[other].length;
     toast(face(player.key,'surprised'),PEOPLE[player.key].name+' 가방이 꽉 찼어요',room>0?`${PEOPLE[other].name} 가방에는 ${room}칸이 남았어요. Ctrl로 바꾸거나 칸을 눌러 내려놓으세요.`:'팀 가방이 모두 찼어요.');hideCard();nearId=null;return;}
@@ -2216,8 +2219,32 @@ function take(id){
   hideCard();nearId=null;const left=TOTAL-BAGS.juho.length-BAGS.harin.length;
   if(!first)toast(face(player.key,'happy'),it.name+' 챙김!',(ITEM_USE[it.id]||'')+(left?` · 팀 가방 ${left}칸 남음`:' · 팀 가방이 가득 찼어요!'));
 }
-function dropItem(k,i){const it=BAGS[k][i];if(!it||CH.phase!=='run')return;BAGS[k].splice(i,1);it.taken=false;it.owner=null;hideItem(it,true);renderBag();sound.play('click');}
-function resetGear(){BAGS.juho.length=0;BAGS.harin.length=0;gear.forEach(g=>{g.taken=false;g.owner=null;hideItem(g,true);});renderBag();nearId=null;hideCard();}
+/* 내려놓기: 가볍게 던지면 장비가 포물선으로 제자리에 돌아가 내려앉음 */
+const FLY=[];
+function flyBack(it,ch){
+  it.fly=true;const p=ch.root.position,obj=gearMesh(it.id);obj.traverse(o=>{if(o.isMesh)o.castShadow=false;});
+  const from=new THREE.Vector3(p.x,1.05,p.z),to=new THREE.Vector3(it.x,it.y+0.03,it.z),d=from.distanceTo(to);
+  obj.position.copy(from);scene.add(obj);
+  FLY.push({it,obj,from,to,t:0,dur:Math.min(0.75,0.36+d*0.03),h:0.7+Math.min(1.6,d*0.1),ax:new THREE.Vector3(Math.random()-0.5,Math.random()*0.4,Math.random()-0.5).normalize()});
+  if(ch.moving<0.3&&ch.busy<=0&&d>0.3)faceTo(ch,it.x,it.z);
+  ch.toss={t:0,dur:0.34,dir:new THREE.Vector3(it.x-p.x,0,it.z-p.z).normalize()};
+}
+function landFly(f){scene.remove(f.obj);f.it.fly=false;if(!f.it.taken){hideItem(f.it,true);f.it.pop=0.0001;sound.play('land');}}
+function clearFly(){while(FLY.length){const f=FLY.pop();scene.remove(f.obj);f.it.fly=false;f.it.pop=0;f.it.obj.scale.setScalar(1);}for(const k in chars)if(chars[k])chars[k].toss=null;}
+function updateFly(dt){
+  for(let i=FLY.length-1;i>=0;i--){const f=FLY[i];f.t+=dt;const u=Math.min(1,f.t/f.dur);
+    f.obj.position.lerpVectors(f.from,f.to,u);f.obj.position.y+=Math.sin(u*Math.PI)*f.h;f.obj.rotateOnAxis(f.ax,dt*11);f.obj.scale.setScalar(1+0.7*Math.sin(u*Math.PI));
+    if(u>=1){FLY.splice(i,1);landFly(f);}}
+  for(const g of gear)if(g.pop>0){g.pop+=dt;const u=Math.min(1,g.pop/0.38),b=1-Math.sin(u*Math.PI*2)*0.36*(1-u),q=1/Math.sqrt(b);g.obj.scale.set(q,b,q);g.ring.material.opacity=1+Math.sin(u*Math.PI)*1.6;
+    if(u>=1){g.pop=0;g.obj.scale.setScalar(1);g.ring.material.opacity=g.taken?0.25:1;}}
+}
+function updateToss(ch,dt){const o=ch.toss;if(!o)return;o.t+=dt;const u=Math.min(1,o.t/o.dur);if(ch.bones&&ch.bones.spine&&!ch.reach){const p=ch.root.position,w=Math.sin(u*Math.PI);
+    applyReach(ch,_v3.set(p.x+o.dir.x*0.7,0.9+u*1.1,p.z+o.dir.z*0.7).clone(),w*0.85);}
+  if(u>=1)ch.toss=null;}
+function dropItem(k,i){const it=BAGS[k][i];if(!it||CH.phase!=='run')return;BAGS[k].splice(i,1);it.taken=false;it.owner=null;renderBag();sound.play('click');
+  const el=slotEls[k][BAGS[k].length];if(el){el.classList.remove('dropped');void el.offsetWidth;el.classList.add('dropped');}
+  if(chars[k])flyBack(it,chars[k]);else hideItem(it,true);}
+function resetGear(){clearFly();BAGS.juho.length=0;BAGS.harin.length=0;gear.forEach(g=>{g.taken=false;g.owner=null;hideItem(g,true);});renderBag();nearId=null;hideCard();}
 const timerEl=$('timer'),countEl=$('count');
 function startChallenge(){
   closeGet(true,true);timerEl.classList.remove('hold');PHASE='prep';resetGear();sirensOn=true;
@@ -2231,7 +2258,7 @@ function startChallenge(){
 function bagRow(k){const items=BAGS[k];
   return `<div class="rb"><img src="${face(k,'neutral')}" alt=""><b>${PEOPLE[k].name}</b><div class="it">${k==='harin'?`<img src="${KEY_ICON}" alt="마스터 출입 키">`:''}${items.map(it=>`<img src="${it.iconURL}" alt="${it.name}" title="${it.name}">`).join('')||'<i>빈 가방</i>'}</div></div>`;}
 function endChallenge(early){
-  CH.phase='done';timerEl.hidden=true;countEl.hidden=true;$('btnDescend').hidden=true;target=null;path=null;hideCard();
+  clearFly();CH.phase='done';timerEl.hidden=true;countEl.hidden=true;$('btnDescend').hidden=true;target=null;path=null;hideCard();
   const all=[...BAGS.juho,...BAGS.harin],n=all.length,missing=['auth','crypto','access'].filter(k=>!all.some(b=>b.concept===k));
   const inst=all.filter(b=>stationFor(b.id)).length;
   $('resFace').src=face(player.key,n>=6?'happy':n>=3?'surprised':'sad');
@@ -2313,9 +2340,9 @@ function loop(){
     gear.forEach((g,i)=>{if(g.taken)return;const near=g.id===nearId;g.holo.position.y=1.05+Math.sin(t*1.8+i)*0.06;g.obj.rotation.y=Math.sin(t*0.6+i)*0.35;
       const s=near?1+0.12*Math.sin(t*6):1;g.ring.scale.setScalar(s);g.holo.scale.setScalar(0.62*(near?1.15:1));g.beam.material.opacity=near?0.3:0.16;
       g.halo.position.y=g.halo2.position.y=g.holo.position.y;g.halo.rotation.set(Math.PI/2+Math.sin(t*0.9+i)*0.35,t*0.7+i,0);g.halo2.rotation.set(Math.PI/2-0.5,0,-t*1.3-i);});
-    if(player&&CH.phase==='run'&&player.busy<=0){const p=player.root.position;let best=null,bd=1.35;for(const g of gear){if(g.taken)continue;const d=Math.hypot(g.x-p.x,g.z-p.z);if(d<bd){bd=d;best=g;}}
+    if(player&&CH.phase==='run'&&player.busy<=0){const p=player.root.position;let best=null,bd=1.35;for(const g of gear){if(g.taken||g.fly)continue;const d=Math.hypot(g.x-p.x,g.z-p.z);if(d<bd){bd=d;best=g;}}
       if(best&&best.id!==nearId){nearId=best.id;showGearCard(best);}else if(!best&&nearId){nearId=null;hideCard();}}
-    updateGet(dt,t);updateChallenge(dt);
+    updateGet(dt,t);updateFly(dt);updateChallenge(dt);
   }
   if(PHASE==='play'){showActs(actsNear());
     // markers bob + arrow
@@ -2359,7 +2386,7 @@ Promise.all([loadModel('juho'),loadModel('harin')]).then(async([j,h])=>{
   renderSwap();
 }).catch(err=>{$('loadText').textContent='모델을 불러오지 못했어요. models 폴더를 확인해 주세요.';console.error(err);});
 loop();
-window.__dbg={get GET(){return GET},gear,closeGet,get S(){return S},G,spawnAgent,placeCat,get PHASE(){return PHASE},get player(){return player},get chars(){return chars},agents,doTask,DAYS,startDay,setControl,travel,goTo,take,startChallenge,endChallenge,CH,activeTasks,install,talk,dlgAdvance,get curMap(){return curMap},UI,camera,
+window.__dbg={FLY,dropItem,get GET(){return GET},gear,closeGet,get S(){return S},G,spawnAgent,placeCat,get PHASE(){return PHASE},get player(){return player},get chars(){return chars},agents,doTask,DAYS,startDay,setControl,travel,goTo,take,startChallenge,endChallenge,CH,activeTasks,install,talk,dlgAdvance,get curMap(){return curMap},UI,camera,
   teleport(x,z){player.root.position.set(x,0,z);camSnap=true;},endDay,petPatch,showEnding,findPath,blockedStatic,COLL};
 
 
