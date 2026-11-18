@@ -96,9 +96,9 @@ h1 span{display:block;color:#ffcf7a}
 .roll .sub2{font-family:var(--display);font-size:20px;color:#b9afd2;margin-top:14px;letter-spacing:.08em}
 .roll .maker{margin-top:56px;font-size:15px;color:#cfc6e3;line-height:1.9}
 .roll .maker b{display:block;font-family:var(--display);font-weight:400;font-size:28px;color:#fff;margin-top:4px}
-.roll p{color:#ddd5ec;text-wrap:pretty;margin-top:18px}
-.roll p.lead{font-family:var(--display);font-size:21px;color:#fff;margin-top:0}
-.roll .three{margin:22px auto 6px;display:grid;gap:10px;max-width:520px}
+.roll p{color:#ddd5ec;max-width:27em;margin:18px auto 0;text-wrap:balance}
+.roll p.lead{font-family:var(--display);font-size:21px;color:#fff;margin-top:0;max-width:none}
+.roll .three{margin:22px auto 10px;display:grid;gap:10px;max-width:25em}
 .roll .three div{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:10px 16px;font-size:15.5px;line-height:1.6}
 .roll .three b{font-family:var(--display);font-weight:400;font-size:18px;color:#ffcf7a}
 .roll .tool{font-family:var(--display);font-weight:400;color:#ffcf7a}
@@ -139,10 +139,11 @@ h1 span{display:block;color:#ffcf7a}
 .staff i{width:1px;height:12px;background:rgba(255,255,255,.2)}
 .staff b{text-align:left;font-family:var(--display);font-weight:400;font-size:20px;color:#fff}
 .staff .gap{height:14px}
-.roll .quote{font-family:var(--display);font-size:22px;line-height:1.7;color:#fff}
+.roll .quote{font-family:var(--display);font-size:22px;line-height:1.75;color:#fff;max-width:none}
 .finale{min-height:72vh;display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:0!important}
-.finale .cat{width:96px;height:96px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.2);transition:transform 2.6s cubic-bezier(.5,0,.8,.4),opacity 2.6s}
-.finale.go .cat{transform:translateX(60vw) rotate(8deg);opacity:0}
+.finale .cat{height:min(240px,30vh);width:auto;filter:drop-shadow(0 18px 24px rgba(0,0,0,.55));opacity:0;transform:translateY(18px);transform-origin:50% 100%;transition:opacity 1.4s,transform 1.4s cubic-bezier(.2,.8,.3,1)}
+.finale.go .cat{opacity:1;transform:none;animation:breathe 3.2s ease-in-out 1.4s infinite}
+@keyframes breathe{50%{transform:scaleY(1.025) scaleX(.99)}}
 .finale .paws{height:26px;margin-top:6px;font-size:16px;letter-spacing:14px;opacity:0;transition:opacity 1.4s .8s}
 .finale.go .paws{opacity:.7}
 .finale .end{font-family:var(--display);font-size:46px;color:#ffcf7a;letter-spacing:.12em;margin-top:24px}
@@ -154,7 +155,7 @@ h1 span{display:block;color:#ffcf7a}
 #crEnd{position:absolute;left:50%;bottom:calc(64px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);font-size:13.5px;color:#d9d2ea;opacity:0;transition:opacity .8s;pointer-events:none}
 #crEnd.on{opacity:1;animation:blink 2s ease-in-out infinite}
 @keyframes blink{50%{opacity:.45}}
-@media (max-width:620px){.roll{font-size:15px}.roll .pair{grid-template-columns:1fr}.staff div{grid-template-columns:1fr;gap:0}.staff span,.staff b{text-align:center}.staff i{display:none}.vname{font-size:40px}#crHint{display:none}}
+@media (max-width:620px){.roll{font-size:15px}.roll p{max-width:22em}.roll .quote{font-size:19px}.roll .pair{grid-template-columns:1fr}.staff div{grid-template-columns:1fr;gap:0}.staff span,.staff b{text-align:center}.staff i{display:none}.vname{font-size:40px}#crHint{display:none}}
 @media (hover:none){#crHint{display:none}}
 @media (prefers-reduced-motion:reduce){#ovCredit,.cast em,.finale .cat,.vname *{transition:none!important;animation:none!important}}
 </style>
@@ -223,9 +224,11 @@ h1 span{display:block;color:#ffcf7a}
         <div>셋째, 기술을 어떤 마음으로 쓸지는<br>사람이 정한다는 <b>AI 윤리</b>.</div>
       </div>
       <p>이것들을 말로 설명하기보다 직접 겪어 보게 하면 좋겠다고 생각했습니다. 그래서 게임을 이렇게 기획했습니다.</p>
-      <p>보안 기술은 60초 안에 어떤 장비를 챙길지 고르는 준비 단계와 방화벽, 출입 통제, 단말 방어 같은 미니게임으로 손에 익히도록 했습니다. 사람을 노리는 속임수는 남의 출입증을 빌려 쓴 사람, 요청한 적 없는 수리 기사, 상자 속 수상한 USB, 길에서 주운 비밀번호 수첩 같은 장면으로 만들었습니다.</p>
+      <p>보안 기술은 60초 안에 어떤 장비를 챙길지 고르는 준비 단계와 방화벽, 출입 통제, 단말 방어 같은 미니게임으로 손에 익히도록 했습니다.</p>
+      <p>사람을 노리는 속임수는 남의 출입증을 빌려 쓴 사람, 요청한 적 없는 수리 기사, 상자 속 수상한 USB, 길에서 주운 비밀번호 수첩 같은 장면으로 만들었습니다.</p>
       <p>AI 리터러시는 다급하게 걸려 온 대표님의 영상통화가 진짜인지 가려내고, AI 비서 픽스가 요약한 자료 속 지어낸 문장을 원본과 비교해 찾아내는 활동에 담았습니다.</p>
-      <p>AI 윤리는 정답이 없는 선택으로 녹였습니다. 픽스에게 얼마나 맡길지, 의심 가는 직원을 어디까지 막을지 스스로 정하게 했습니다. 그 선택들이 쌓여 서로 다른 엔딩으로 이어지도록 해서, 결과를 통해 자기 판단을 돌아볼 수 있게 했습니다.</p>
+      <p>AI 윤리는 정답이 없는 선택으로 녹였습니다. 픽스에게 얼마나 맡길지, 의심 가는 직원을 어디까지 막을지 스스로 정하게 했습니다.</p>
+      <p>그 선택들이 쌓여 서로 다른 엔딩으로 이어지도록 해서, 결과를 통해 자기 판단을 돌아볼 수 있게 했습니다.</p>
       <p>그리고 이 게임 역시 AI와 함께 만들었습니다. AI를 두려워하거나 전부 맡겨 버리지 않고, 사람이 방향을 정하고 AI를 잘 쓰는 모습을 직접 보여 주고 싶었습니다.</p>
     </section>
 
@@ -234,9 +237,9 @@ h1 span{display:block;color:#ffcf7a}
       <p>가장 먼저 60초의 준비와 일주일의 방어라는 이야기의 뼈대를 세우고, 선택에 따라 달라지는 엔딩들을 정했습니다.</p>
       <figure class="tall"><img src="assets/credits/story.jpg" alt="엔딩 도감 화면" loading="lazy"></figure>
       <p>다음으로 <span class="tool">GPT</span>를 통해 캐릭터와 사무실, 숨겨진 벙커의 모습을 그림으로 먼저 그려 보았습니다.</p>
-      <figure><img src="assets/credits/art.jpg" alt="캐릭터 그림" loading="lazy"></figure>
+      <figure><img src="assets/credits/art.jpg" alt="주인공 홍채린과 서보안 그림" loading="lazy"></figure>
       <p>그 그림을 <span class="tool">Tripo</span>에 넣어 3D 모델로 세웠고, <span class="tool">Mixamo</span>로 뼈대를 넣어 걷고 숨 쉬는 움직임을 입혔습니다.</p>
-      <figure class="tall"><img src="assets/credits/model.jpg" alt="3D 캐릭터 모델" loading="lazy"></figure>
+      <figure><img src="assets/credits/model.jpg" alt="주인공 홍채린과 서보안 3D 모델" loading="lazy"></figure>
       <p>마지막으로 <span class="tool">Claude</span>와 함께 게임 전체의 코드를 짜고 폴더를 정리하며 장면과 미니게임을 하나로 엮었습니다.</p>
       <figure class="pair"><div><img src="assets/credits/office_old.jpg" alt="처음 사무실" loading="lazy"><figcaption>처음</figcaption></div><div><img src="assets/credits/office_new.jpg" alt="지금 사무실" loading="lazy"><figcaption>지금</figcaption></div></figure>
       <p>그 뒤로는 직접 플레이하며 고치고 또 고쳤습니다. 어려운 곳은 쉽게, 헷갈리는 곳은 분명하게 다듬어 지금의 모습이 되었습니다.</p>
@@ -270,13 +273,13 @@ h1 span{display:block;color:#ffcf7a}
 
     <section>
       <div class="lbl">제작자의 말</div>
-      <p class="quote">이 게임에서 고른 선택들이<br>언젠가 진짜 화면 앞에서 여러분을 지켜 주길 바랍니다.<br>끝까지 함께해 줘서 고마워요.</p>
+      <p class="quote">이 게임에서 고른 선택들이<br>언젠가 진짜 화면 앞에서<br>여러분을 지켜 주길 바랍니다.</p>
+      <p class="quote" style="margin-top:22px">끝까지 함께해 줘서 고마워요.</p>
     </section>
 
     <section class="finale" id="crFin">
-      <img class="cat" src="assets/npc/patch_happy.jpg" alt="">
-      <div class="paws">🐾🐾🐾</div>
-      <p class="note2">패치가 하품을 하며 화면 밖으로 걸어 나가요.</p>
+      <img class="cat" src="assets/credits/patch3d.png" alt="고양이 패치">
+      <div class="paws">🐾 🐾 🐾</div>
       <div class="end">THE END</div>
     </section>
   </div></div>
@@ -363,7 +366,7 @@ function closeCredit() { if (!CR.on) return; CR.on = false; cancelAnimationFrame
 function crTick(now) {
   if (!CR.on) return; const dt = Math.min(0.05, (now - CR.last) / 1000); CR.last = now;
   const max = crView.scrollHeight - crView.clientHeight;
-  if (!RM && crView.scrollTop < max - 1) { CR.acc += dt * (CR.fast ? 360 : 52); const n = Math.floor(CR.acc); if (n) { crView.scrollTop += n; CR.acc -= n; } }
+  if (!RM && crView.scrollTop < max - 1) { CR.acc += dt * (CR.fast ? 170 : 52); const n = Math.floor(CR.acc); if (n) { crView.scrollTop += n; CR.acc -= n; } }
   const H = innerHeight;
   crView.querySelectorAll('.cast .p:not(.lit)').forEach((el, i) => { if (el.getBoundingClientRect().top < H * 0.62) setTimeout(() => el.classList.add('lit'), CR.fast ? 80 : 700); });
   const v = $('crVil'); if (!CR.vil && v.getBoundingClientRect().top < H * 0.5) {
@@ -372,7 +375,7 @@ function crTick(now) {
     setTimeout(() => { v.classList.remove('glitch'); v.classList.add('s2'); sound.play('alert'); }, 1500 * k);
     setTimeout(() => v.classList.add('s3'), 3200 * k);
   }
-  const f = $('crFin'); if (!CR.fin && f.getBoundingClientRect().top < H * 0.35) { CR.fin = true; setTimeout(() => f.classList.add('go'), 900); }
+  const f = $('crFin'); if (!CR.fin && f.getBoundingClientRect().top < H * 0.75) { CR.fin = true; setTimeout(() => f.classList.add('go'), 200); }
   if (!CR.done && crView.scrollTop >= max - 2) { CR.done = true; setTimeout(() => CR.on && $('crEnd').classList.add('on'), 1600); }
   CR.raf = requestAnimationFrame(crTick);
 }
