@@ -316,7 +316,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { store, sound, face, mountSettings, touchMode } from './js/common.js';
+import { store, sound, bgm, face, mountSettings, touchMode } from './js/common.js';
 import { ENDINGS } from './js/story7.js';
 import { buildBunker, loadHero, seat, updateHero, SLOT } from './js/bunker-scene.js';
 const $ = id => document.getElementById(id);
@@ -393,12 +393,12 @@ addEventListener('keydown', e => {
 const CR = { on: false, fast: false, raf: 0, last: 0, acc: 0, done: false, vil: 0, fin: false };
 const crView = $('crView'), RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 function openCredit() {
-  sound.play('click'); const ov = $('ovCredit'); ov.hidden = false; crView.scrollTop = 0;
+  sound.play('click'); bgm.mode('credits'); const ov = $('ovCredit'); ov.hidden = false; crView.scrollTop = 0;
   ov.querySelectorAll('.lit').forEach(e => e.classList.remove('lit')); const v = $('crVil'); v.className = 'vil'; $('vTxt').textContent = 'T.로이'; $('vTxt').classList.remove('swap'); $('crFin').classList.remove('go'); $('crEnd').classList.remove('on');
   Object.assign(CR, { on: true, fast: false, last: performance.now(), acc: 0, done: false, vil: 0, fin: false });
   requestAnimationFrame(() => ov.classList.add('on')); cancelAnimationFrame(CR.raf); CR.raf = requestAnimationFrame(crTick);
 }
-function closeCredit() { if (!CR.on) return; CR.on = false; cancelAnimationFrame(CR.raf); const ov = $('ovCredit'); ov.classList.remove('on'); setTimeout(() => { if (!CR.on) ov.hidden = true; }, 450); $('bCredit').focus(); }
+function closeCredit() { if (!CR.on) return; CR.on = false; bgm.stop(); cancelAnimationFrame(CR.raf); const ov = $('ovCredit'); ov.classList.remove('on'); setTimeout(() => { if (!CR.on) ov.hidden = true; }, 450); $('bCredit').focus(); }
 function crTick(now) {
   if (!CR.on) return; const dt = Math.min(0.05, (now - CR.last) / 1000); CR.last = now;
   const max = crView.scrollHeight - crView.clientHeight;

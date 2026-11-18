@@ -305,9 +305,22 @@ const MT = {
   bunker: { bpm: 80,  bars: [[45, 48, 52], [41, 45, 48, 52], [38, 41, 45, 48], [40, 44, 47]], pad: 0.06, cut: 620,  bass: 'sub', arp: 'ping', hat: 'sparse', kick: 'heart' },
   game:   { bpm: 128, bars: [[45, 48, 52], [41, 45, 48], [43, 47, 50], [40, 44, 47]], pad: 0.03, cut: 1200, bass: 'sixteen', arp: 'fast', hat: 'eighth', kick: 'four' },
   night:  { bpm: 68,  bars: [[48, 52, 55, 59], [45, 48, 52, 55], [41, 45, 48, 52], [43, 47, 50, 53]], pad: 0.04, cut: 900, bass: 'whole', arp: 'box', hat: 'none', kick: 'none' },
+  // 제작 노트(엔딩 크레딧): F–G–Em–Am, 잔잔한 피아노 선율 + 뮤직박스
+  credits: { bpm: 78, bars: [[41, 45, 48, 52], [43, 47, 50, 53], [40, 43, 47, 50], [45, 48, 52, 55]], pad: 0.04, cut: 1100, bass: 'half', arp: 'credit', hat: 'none', kick: 'none' },
   ending: { bpm: 72,  bars: [[48, 52, 55, 60], [43, 47, 50, 55], [45, 48, 52, 57], [41, 45, 48, 53]], pad: 0.05, cut: 1400, bass: 'whole', arp: 'box', hat: 'none', kick: 'none' },
 };
 const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+/* 제작 노트 선율 8마디: 마디별 {스텝: [음, 길이(16분음표)]} */
+const CREDIT_MEL = [
+  { 0: [72, 6], 6: [69, 2], 8: [72, 4], 12: [76, 4] },
+  { 0: [74, 6], 6: [72, 2], 8: [71, 4], 12: [67, 4] },
+  { 0: [71, 6], 6: [67, 2], 8: [71, 4], 12: [74, 4] },
+  { 0: [72, 10], 12: [64, 4] },
+  { 0: [77, 4], 4: [76, 4], 8: [72, 4], 12: [69, 4] },
+  { 0: [74, 4], 4: [76, 4], 8: [74, 4], 12: [71, 4] },
+  { 0: [76, 6], 6: [74, 2], 8: [71, 8] },
+  { 0: [72, 12], 12: [69, 4] },
+];
 let bus = null, noiseBuf = null;
 export const bgm = {
   on: store.settings().music !== false, cur: null, want: null, step: 0, next: 0, timer: 0, get vol() { return musicGain(); },
@@ -375,6 +388,10 @@ export const bgm = {
     if (A === 'keys') { const pat = [0, -1, 2, -1, -1, 1, -1, 3, -1, -1, 2, -1, 1, -1, -1, -1]; const k = pat[i]; if (k >= 0 && (bar % 2 || i < 12)) { const f = hz(ch[k % ch.length] + 12); this._osc('triangle', f, t, sp * 3, 0.07, { at: 0.005, rel: sp * 2 }); this._osc('sine', f * 2, t, sp * 1.5, 0.02); } }
     if (A === 'ping' && (i === 4 || i === 7 || (bar % 2 && i === 12))) { const f = hz(ch[(i + bar) % ch.length] + 24); this._osc('sine', f, t, 0.5, 0.05, { at: 0.004, tail: 0.6 }); this._osc('sine', f, t + sp * 3, 0.4, 0.018, { at: 0.004, tail: 0.5 }); }
     if (A === 'fast') { const f = hz(ch[i % ch.length] + (i % 8 < 4 ? 24 : 36)); this._osc('square', f, t, sp * 0.7, 0.028, { cut: 2600 }); }
+    if (A === 'credit') { const L = CREDIT_MEL[bar % CREDIT_MEL.length][i];
+      if (L) { const f = hz(L[0]), d = sp * L[1]; this._osc('triangle', f, t, d, 0.1, { at: 0.006, rel: d * 0.7, tail: 0.5 }); this._osc('sine', f * 2, t, d * 0.6, 0.018, { at: 0.006, tail: 0.3 }); }
+      if (i % 4 === 2) { const f2 = hz(ch[(i >> 2) % ch.length] + 12); this._osc('sine', f2, t, sp * 3, 0.042, { at: 0.01, tail: 0.5 }); }
+      if (i === 0 && bar % 2) { const f3 = hz(ch[0] + 36); this._osc('sine', f3, t + sp * 8, 0.9, 0.025, { at: 0.004, tail: 1.2 }); } }
     if (A === 'box' && i % 4 === 0) { const f = hz(ch[(i / 4 + bar) % ch.length] + 24); this._osc('sine', f, t, 0.8, 0.06, { at: 0.004, tail: 0.9 }); this._osc('sine', f * 3, t, 0.25, 0.01, { at: 0.004 }); }
     // drums
     const K = th.kick, H = th.hat;
