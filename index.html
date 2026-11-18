@@ -2,7 +2,7 @@
 <title>루프랩 보안팀, 7일의 방어</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 
 /* title screen: the bunker glows on the right, the menu sits on the left */
@@ -82,6 +82,81 @@ h1 span{display:block;color:#ffcf7a}
 #keyHint .arr kbd{min-width:24px;padding:0;font-size:13px}#keyHint .arr kbd:first-child{grid-column:2}#keyHint .arr kbd:nth-child(n+2){grid-row:2}
 #keyHint .sep{width:1px;align-self:stretch;background:rgba(255,255,255,.16)}
 @media (max-width:860px),(hover:none){#keyHint{display:none}}
+
+/* ---------- 제작 노트 (엔딩 크레딧) ---------- */
+#ovCredit{position:fixed;inset:0;z-index:20;background:radial-gradient(ellipse at 50% 40%,#17142a 0%,#0a0912 70%);color:#ece6f6;opacity:0;transition:opacity .5s}
+#ovCredit.on{opacity:1}
+#crView{position:absolute;inset:0;overflow-y:auto;scrollbar-width:none;-webkit-mask:linear-gradient(180deg,transparent 0,#000 14%,#000 84%,transparent 100%);mask:linear-gradient(180deg,transparent 0,#000 14%,#000 84%,transparent 100%)}
+#crView::-webkit-scrollbar{display:none}
+.roll{width:min(640px,calc(100vw - 40px));margin:0 auto;padding:100vh 0 0;text-align:center;font-size:16px;line-height:1.85}
+.roll section{margin-bottom:28vh}
+.roll .lbl{display:inline-block;font:700 12px var(--body);letter-spacing:.22em;color:#9d93b8;border-bottom:1px solid rgba(157,147,184,.35);padding-bottom:6px;margin-bottom:26px}
+.roll h2{font-family:var(--display);font-weight:400;font-size:clamp(38px,6vw,58px);line-height:1.1;color:#fff;text-shadow:0 0 30px rgba(255,170,80,.3)}
+.roll h2 span{display:block;color:#ffcf7a}
+.roll .sub2{font-family:var(--display);font-size:20px;color:#b9afd2;margin-top:14px;letter-spacing:.08em}
+.roll .maker{margin-top:56px;font-size:15px;color:#cfc6e3;line-height:1.9}
+.roll .maker b{display:block;font-family:var(--display);font-weight:400;font-size:28px;color:#fff;margin-top:4px}
+.roll p{color:#ddd5ec;text-wrap:pretty;margin-top:18px}
+.roll p.lead{font-family:var(--display);font-size:21px;color:#fff;margin-top:0}
+.roll .three{margin:22px auto 6px;display:grid;gap:10px;max-width:520px}
+.roll .three div{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:10px 16px;font-size:15.5px;line-height:1.6}
+.roll .three b{font-family:var(--display);font-weight:400;font-size:18px;color:#ffcf7a}
+.roll .tool{font-family:var(--display);font-weight:400;color:#ffcf7a}
+.roll figure{margin:22px auto 34px}
+.roll figure img{display:block;width:100%;border-radius:14px;border:1px solid rgba(255,255,255,.14);box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.roll figure.tall img{max-height:46vh;width:auto;max-width:100%;margin:0 auto}
+.roll .pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+.roll .pair figcaption,.roll figure>figcaption{font:700 12px var(--body);letter-spacing:.12em;color:#9d93b8;margin-top:8px}
+.cast{display:grid;gap:14px;max-width:440px;margin:0 auto}
+.cast .p{display:grid;grid-template-columns:62px 1fr;gap:16px;align-items:center;text-align:left}
+.cast img{width:62px;height:62px;border-radius:50%;object-fit:cover;object-position:50% 22%;border:2px solid rgba(255,255,255,.18);background:#2a2740}
+.cast .n{font-family:var(--display);font-size:24px;color:#fff;line-height:1.15}
+.cast .r{font-size:13.5px;color:#a79fbd;line-height:1.3}
+.cast em{font-style:normal;color:inherit;transition:color 1s ease,text-shadow 1s ease}
+.cast .lit em.a{color:#7db3ff;text-shadow:0 0 14px rgba(61,127,224,.8)}
+.cast .lit em.c{color:#4fe0cd;text-shadow:0 0 14px rgba(23,169,154,.8)}
+.cast .lit em.x{color:#ffb357;text-shadow:0 0 14px rgba(224,138,30,.8)}
+.cast .lit em{animation:egg .9s ease}
+@keyframes egg{0%{filter:brightness(1)}35%{filter:brightness(2.2)}100%{filter:brightness(1)}}
+.vil{display:flex;flex-direction:column;align-items:center}
+.vil img{width:120px;height:120px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,77,94,.0);transition:border-color .6s,box-shadow .6s}
+.vil.s2 img{border-color:rgba(255,77,94,.7);box-shadow:0 0 40px rgba(255,60,80,.45)}
+.vname{position:relative;height:70px;margin-top:18px;font-family:'DotGothic16',var(--display);font-size:52px;line-height:70px;color:#5ef0a0;text-shadow:0 0 18px rgba(94,240,160,.6);white-space:nowrap}
+.vname .q,.vname .tr{transition:opacity .35s}
+.vname .tr{position:absolute;left:50%;top:0;transform:translateX(-50%);opacity:0;color:#ff4d5e;text-shadow:0 0 22px rgba(255,60,80,.8);display:inline-flex}
+.vname .tr i{font-style:normal;display:inline-block;overflow:hidden;width:.42em;transition:width .7s ease .1s,opacity .5s}
+.vname .tr .t1,.vname .tr .t2{display:inline-block;position:relative}
+.vname .tr .t2{position:absolute;left:0;top:0;opacity:0;transition:opacity .6s .15s}
+.vname .tr .t1{transition:opacity .5s}
+.vil.s2 .q{opacity:0}.vil.s2 .tr{opacity:1}
+.vil.s3 .tr i{width:0;opacity:0}.vil.s3 .tr .t1{opacity:0}.vil.s3 .tr .t2{opacity:1}
+.vil.glitch .vname{animation:gl .5s steps(2) 2}
+@keyframes gl{0%{transform:translate(0)}25%{transform:translate(-4px,2px);filter:hue-rotate(90deg)}50%{transform:translate(3px,-2px)}75%{transform:translate(-2px,1px);filter:hue-rotate(-90deg)}100%{transform:none}}
+.vil .vr{font-size:15px;color:#a79fbd;margin-top:12px}
+.staff{display:grid;gap:8px;max-width:460px;margin:0 auto}
+.staff div{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:baseline}
+.staff span{text-align:right;font-size:14px;color:#a79fbd}
+.staff i{width:1px;height:12px;background:rgba(255,255,255,.2)}
+.staff b{text-align:left;font-family:var(--display);font-weight:400;font-size:20px;color:#fff}
+.staff .gap{height:14px}
+.roll .quote{font-family:var(--display);font-size:22px;line-height:1.7;color:#fff}
+.finale{min-height:72vh;display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:0!important}
+.finale .cat{width:96px;height:96px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.2);transition:transform 2.6s cubic-bezier(.5,0,.8,.4),opacity 2.6s}
+.finale.go .cat{transform:translateX(60vw) rotate(8deg);opacity:0}
+.finale .paws{height:26px;margin-top:6px;font-size:16px;letter-spacing:14px;opacity:0;transition:opacity 1.4s .8s}
+.finale.go .paws{opacity:.7}
+.finale .end{font-family:var(--display);font-size:46px;color:#ffcf7a;letter-spacing:.12em;margin-top:24px}
+.finale .note2{font-size:14px;color:#b9afd2}
+#crHint{position:absolute;right:20px;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;gap:14px;align-items:center;font-size:12.5px;color:#b9afd2;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:7px 12px}
+#crHint kbd{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;font:700 11px var(--body);color:#2c2733;background:#fff;border-radius:5px;box-shadow:0 2px 0 #9b94a8;margin-right:5px}
+#crHint .wide{min-width:64px}
+#crClose{position:absolute;right:16px;top:calc(14px + env(safe-area-inset-top,0px));font-size:14px;padding:6px 12px;background:rgba(255,255,255,.08);color:#ece6f6;border:1px solid rgba(255,255,255,.2);box-shadow:none;text-align:center}
+#crEnd{position:absolute;left:50%;bottom:calc(64px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);font-size:13.5px;color:#d9d2ea;opacity:0;transition:opacity .8s;pointer-events:none}
+#crEnd.on{opacity:1;animation:blink 2s ease-in-out infinite}
+@keyframes blink{50%{opacity:.45}}
+@media (max-width:620px){.roll{font-size:15px}.roll .pair{grid-template-columns:1fr}.staff div{grid-template-columns:1fr;gap:0}.staff span,.staff b{text-align:center}.staff i{display:none}.vname{font-size:40px}#crHint{display:none}}
+@media (hover:none){#crHint{display:none}}
+@media (prefers-reduced-motion:reduce){#ovCredit,.cast em,.finale .cat,.vname *{transition:none!important;animation:none!important}}
 </style>
 
 <canvas id="c" aria-hidden="true"></canvas>
@@ -95,6 +170,7 @@ h1 span{display:block;color:#ffcf7a}
     <button id="bCont" type="button" disabled><i>⟳</i><span>이어하기<small id="contInfo">저장된 기록이 없어요</small></span></button>
     <button id="bEnd" type="button"><i>📖</i><span>엔딩 도감<small id="endInfo">0 / 10</small></span></button>
     <button id="bTeach" type="button"><i>⚙️</i><span>설정<small>소리 크기, 난이도, 글자 크기, 저장 기록</small></span></button>
+    <button id="bCredit" type="button"><i>✍️</i><span>제작 노트<small>만든 사람 · 만든 이야기</small></span></button>
   </div>
   <p class="foot">기록은 이 기기의 브라우저에 자동 저장돼요. 다른 기기에서는 이어지지 않아요.</p>
 </main>
@@ -129,6 +205,85 @@ h1 span{display:block;color:#ffcf7a}
   <div class="row"><button id="tClose" type="button">닫기</button></div>
 </div></div>
 
+
+<div id="ovCredit" hidden role="dialog" aria-label="제작 노트">
+  <div id="crView"><div class="roll">
+    <section>
+      <h2>루프랩 보안팀,<span>7일의 방어</span></h2>
+      <div class="sub2">제작 노트</div>
+      <div class="maker">제작<b>고태열</b>경기도 화성 반월고등학교 기술 교사<br>「공학하는 기술쌤」 블로그 운영</div>
+    </section>
+
+    <section>
+      <div class="lbl">제작 의도</div>
+      <p class="lead">학생들에게 알려 주고 싶었던 건 세 가지였습니다.</p>
+      <div class="three">
+        <div>첫째, <b>보안</b>은 어려운 기술이 아니라<br>매일 내리는 작은 선택이라는 것.</div>
+        <div>둘째, 보이고 들리는 것도<br>한 번 더 확인하는 <b>AI 리터러시</b>.</div>
+        <div>셋째, 기술을 어떤 마음으로 쓸지는<br>사람이 정한다는 <b>AI 윤리</b>.</div>
+      </div>
+      <p>이것들을 말로 설명하기보다 직접 겪어 보게 하면 좋겠다고 생각했습니다. 그래서 게임을 이렇게 기획했습니다.</p>
+      <p>보안 기술은 60초 안에 어떤 장비를 챙길지 고르는 준비 단계와 방화벽, 출입 통제, 단말 방어 같은 미니게임으로 손에 익히도록 했습니다. 사람을 노리는 속임수는 남의 출입증을 빌려 쓴 사람, 요청한 적 없는 수리 기사, 상자 속 수상한 USB, 길에서 주운 비밀번호 수첩 같은 장면으로 만들었습니다.</p>
+      <p>AI 리터러시는 다급하게 걸려 온 대표님의 영상통화가 진짜인지 가려내고, AI 비서 픽스가 요약한 자료 속 지어낸 문장을 원본과 비교해 찾아내는 활동에 담았습니다.</p>
+      <p>AI 윤리는 정답이 없는 선택으로 녹였습니다. 픽스에게 얼마나 맡길지, 의심 가는 직원을 어디까지 막을지 스스로 정하게 했습니다. 그 선택들이 쌓여 서로 다른 엔딩으로 이어지도록 해서, 결과를 통해 자기 판단을 돌아볼 수 있게 했습니다.</p>
+      <p>그리고 이 게임 역시 AI와 함께 만들었습니다. AI를 두려워하거나 전부 맡겨 버리지 않고, 사람이 방향을 정하고 AI를 잘 쓰는 모습을 직접 보여 주고 싶었습니다.</p>
+    </section>
+
+    <section>
+      <div class="lbl">만든 과정</div>
+      <p>가장 먼저 60초의 준비와 일주일의 방어라는 이야기의 뼈대를 세우고, 선택에 따라 달라지는 엔딩들을 정했습니다.</p>
+      <figure class="tall"><img src="assets/credits/story.jpg" alt="엔딩 도감 화면" loading="lazy"></figure>
+      <p>다음으로 <span class="tool">GPT</span>를 통해 캐릭터와 사무실, 숨겨진 벙커의 모습을 그림으로 먼저 그려 보았습니다.</p>
+      <figure><img src="assets/credits/art.jpg" alt="캐릭터 그림" loading="lazy"></figure>
+      <p>그 그림을 <span class="tool">Tripo</span>에 넣어 3D 모델로 세웠고, <span class="tool">Mixamo</span>로 뼈대를 넣어 걷고 숨 쉬는 움직임을 입혔습니다.</p>
+      <figure class="tall"><img src="assets/credits/model.jpg" alt="3D 캐릭터 모델" loading="lazy"></figure>
+      <p>마지막으로 <span class="tool">Claude</span>와 함께 게임 전체의 코드를 짜고 폴더를 정리하며 장면과 미니게임을 하나로 엮었습니다.</p>
+      <figure class="pair"><div><img src="assets/credits/office_old.jpg" alt="처음 사무실" loading="lazy"><figcaption>처음</figcaption></div><div><img src="assets/credits/office_new.jpg" alt="지금 사무실" loading="lazy"><figcaption>지금</figcaption></div></figure>
+      <p>그 뒤로는 직접 플레이하며 고치고 또 고쳤습니다. 어려운 곳은 쉽게, 헷갈리는 곳은 분명하게 다듬어 지금의 모습이 되었습니다.</p>
+      <figure class="pair"><div><img src="assets/credits/fw_old.jpg" alt="처음 방화벽 미니게임" loading="lazy"><figcaption>처음</figcaption></div><div><img src="assets/credits/fw_new.jpg" alt="지금 방화벽 미니게임" loading="lazy"><figcaption>지금</figcaption></div></figure>
+    </section>
+
+    <section>
+      <div class="lbl">등장인물</div>
+      <div class="cast"><div class="p egg"><img src="assets/npc/boan_neutral.jpg" alt="" loading="lazy"><div><div class="n">서<em class="a">보안</em></div><div class="r">보안팀 대리</div></div></div><div class="p egg"><img src="assets/npc/chaerin_neutral.jpg" alt="" loading="lazy"><div><div class="n"><em class="a">홍채</em>린</div><div class="r">보안팀 팀장</div></div></div><div class="p egg"><img src="assets/npc/intern_neutral.jpg" alt="" loading="lazy"><div><div class="n">신<em class="c">무결</em></div><div class="r">신입 개발자</div></div></div><div class="p egg"><img src="assets/npc/hr_neutral.jpg" alt="" loading="lazy"><div><div class="n">강<em class="x">차단</em></div><div class="r">인사·업무 담당 과장</div></div></div><div class="p egg"><img src="assets/npc/facility_neutral.jpg" alt="" loading="lazy"><div><div class="n">유<em class="x">복구</em></div><div class="r">시설 엔지니어</div></div></div><div class="p egg"><img src="assets/npc/analyst_neutral.jpg" alt="" loading="lazy"><div><div class="n"><em class="c">암호</em>정</div><div class="r">외부 보안 분석가</div></div></div><div class="p egg"><img src="assets/npc/lead_neutral.jpg" alt="" loading="lazy"><div><div class="n"><em class="x">백신</em>우</div><div class="r">외부 대응팀 실장</div></div></div><div class="p egg"><img src="assets/npc/ceo_neutral.jpg" alt="" loading="lazy"><div><div class="n">안<em class="c">기밀</em></div><div class="r">루프랩 대표</div></div></div><div class="p egg"><img src="assets/npc/courier_neutral.jpg" alt="" loading="lazy"><div><div class="n">배송 기사님</div><div class="r">시설 물품 배송</div></div></div><div class="p egg"><img src="assets/npc/fix_neutral.jpg" alt="" loading="lazy"><div><div class="n">픽스</div><div class="r">탁상 상태 표시 로봇</div></div></div><div class="p egg"><img src="assets/npc/patch_neutral.jpg" alt="" loading="lazy"><div><div class="n">패치</div><div class="r">시설 구역 고양이</div></div></div></div>
+    </section>
+
+    <section>
+      <div class="vil" id="crVil">
+        <img src="assets/npc/unknown_neutral.jpg" alt="">
+        <div class="vname"><span class="q">???</span><span class="tr"><span class="t1">T</span><span class="t2">트</span><i>.</i><span>로이</span></span></div>
+        <div class="vr">끝내 얼굴을 드러내지 않은 공격자</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="lbl">만든 사람</div>
+      <div class="staff">
+        <div><span>기획 · 이야기 · 연출</span><i></i><b>고태열</b></div>
+        <div class="gap"></div>
+        <div><span>캐릭터 · 장소 이미지</span><i></i><b>GPT</b></div>
+        <div><span>3D 모델링</span><i></i><b>Tripo</b></div>
+        <div><span>움직임</span><i></i><b>Mixamo</b></div>
+        <div><span>코딩 · 폴더 구성</span><i></i><b>Claude</b></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="lbl">제작자의 말</div>
+      <p class="quote">이 게임에서 고른 선택들이<br>언젠가 진짜 화면 앞에서 여러분을 지켜 주길 바랍니다.<br>끝까지 함께해 줘서 고마워요.</p>
+    </section>
+
+    <section class="finale" id="crFin">
+      <img class="cat" src="assets/npc/patch_happy.jpg" alt="">
+      <div class="paws">🐾🐾🐾</div>
+      <p class="note2">패치가 하품을 하며 화면 밖으로 걸어 나가요.</p>
+      <div class="end">THE END</div>
+    </section>
+  </div></div>
+  <button id="crClose" type="button">닫기 (X)</button>
+  <div id="crEnd">아무 키나 누르면 메뉴로 돌아가요</div>
+  <div id="crHint"><span><kbd class="wide">Space</kbd>누르고 있으면 빨리 감기</span><span><kbd>X</kbd>닫기</span></div>
+</div>
 <script type="importmap">
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
 </script>
@@ -183,7 +338,7 @@ $('tBig').onclick = () => { const s = store.settings(); s.bigText = !s.bigText; 
 $('tClear').onclick = () => { const b = $('tClear'); if (!b.dataset.arm) { b.dataset.arm = 1; b.textContent = '한 번 더 누르면 삭제'; b.classList.add('go'); return; } store.clear(); b.textContent = '삭제했어요'; b.disabled = true; $('bCont').disabled = true; $('contInfo').textContent = '저장된 기록이 없어요'; };
 $('tClose').onclick = () => { $('ovTeach').hidden = true; };
 /* 메뉴 단축키 (화면 표시 없이) */
-const HK = { bNew: 'N', bCont: 'Space', bEnd: 'E', bTeach: 'T', nYes: 'Space', nNo: 'X', eClose: 'Space', e1Close: 'Space', tSound: 'S', tBig: 'B', tClear: 'X', tClose: 'Space' };
+const HK = { bNew: 'N', bCont: 'Space', bEnd: 'E', bTeach: 'T', bCredit: 'C', nYes: 'Space', nNo: 'X', eClose: 'Space', e1Close: 'Space', tSound: 'S', tBig: 'B', tClear: 'X', tClose: 'Space' };
 const CODE_OF = l => l === 'Space' ? 'Space' : 'Key' + l;
 addEventListener('keydown', e => {
   const open = [...document.querySelectorAll('.ov')].reverse().find(o => !o.hidden);
@@ -193,6 +348,44 @@ addEventListener('keydown', e => {
   const id = Object.keys(HK).find(id => { const b = $(id); return b && scope.contains(b) && (open || !b.closest('.ov')) && CODE_OF(HK[id]) === e.code && !b.disabled; });
   if (id) { e.preventDefault(); $(id).click(); }
 });
+
+
+/* ---------- 제작 노트 (엔딩 크레딧) ---------- */
+const CR = { on: false, fast: false, raf: 0, last: 0, acc: 0, done: false, vil: 0, fin: false };
+const crView = $('crView'), RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function openCredit() {
+  sound.play('click'); const ov = $('ovCredit'); ov.hidden = false; crView.scrollTop = 0;
+  ov.querySelectorAll('.lit').forEach(e => e.classList.remove('lit')); const v = $('crVil'); v.className = 'vil'; $('crFin').classList.remove('go'); $('crEnd').classList.remove('on');
+  Object.assign(CR, { on: true, fast: false, last: performance.now(), acc: 0, done: false, vil: 0, fin: false });
+  requestAnimationFrame(() => ov.classList.add('on')); cancelAnimationFrame(CR.raf); CR.raf = requestAnimationFrame(crTick);
+}
+function closeCredit() { if (!CR.on) return; CR.on = false; cancelAnimationFrame(CR.raf); const ov = $('ovCredit'); ov.classList.remove('on'); setTimeout(() => { if (!CR.on) ov.hidden = true; }, 450); $('bCredit').focus(); }
+function crTick(now) {
+  if (!CR.on) return; const dt = Math.min(0.05, (now - CR.last) / 1000); CR.last = now;
+  const max = crView.scrollHeight - crView.clientHeight;
+  if (!RM && crView.scrollTop < max - 1) { CR.acc += dt * (CR.fast ? 360 : 52); const n = Math.floor(CR.acc); if (n) { crView.scrollTop += n; CR.acc -= n; } }
+  const H = innerHeight;
+  crView.querySelectorAll('.cast .p:not(.lit)').forEach((el, i) => { if (el.getBoundingClientRect().top < H * 0.62) setTimeout(() => el.classList.add('lit'), CR.fast ? 80 : 700); });
+  const v = $('crVil'); if (!CR.vil && v.getBoundingClientRect().top < H * 0.5) {
+    CR.vil = 1; const k = CR.fast ? 0.35 : 1;
+    setTimeout(() => { v.classList.add('glitch'); sound.play('page'); }, 600 * k);
+    setTimeout(() => { v.classList.remove('glitch'); v.classList.add('s2'); sound.play('alert'); }, 1500 * k);
+    setTimeout(() => v.classList.add('s3'), 3200 * k);
+  }
+  const f = $('crFin'); if (!CR.fin && f.getBoundingClientRect().top < H * 0.35) { CR.fin = true; setTimeout(() => f.classList.add('go'), 900); }
+  if (!CR.done && crView.scrollTop >= max - 2) { CR.done = true; setTimeout(() => CR.on && $('crEnd').classList.add('on'), 1600); }
+  CR.raf = requestAnimationFrame(crTick);
+}
+$('bCredit').onclick = openCredit; $('crClose').onclick = closeCredit;
+crView.addEventListener('click', () => { if (CR.done) closeCredit(); });
+addEventListener('keydown', e => {
+  if (!CR.on) return; e.preventDefault(); e.stopImmediatePropagation();
+  if (e.key === 'x' || e.key === 'X' || e.key === 'Escape') { closeCredit(); return; }
+  if (e.code === 'Space') { if (CR.done && !e.repeat && $('crEnd').classList.contains('on')) closeCredit(); else CR.fast = true; return; }
+  if (e.code === 'ArrowDown') { crView.scrollTop += 120; return; } if (e.code === 'ArrowUp') { crView.scrollTop -= 120; return; }
+  if (CR.done && !e.repeat && $('crEnd').classList.contains('on')) closeCredit();
+}, true);
+addEventListener('keyup', e => { if (CR.on && e.code === 'Space') CR.fast = false; }, true);
 
 /* ---------- backdrop scene ---------- */
 const canvas = $('c');
