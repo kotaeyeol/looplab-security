@@ -90,7 +90,7 @@ h1 span{display:block;color:#ffcf7a}
 #crView::-webkit-scrollbar{display:none}
 .roll{width:min(640px,calc(100vw - 40px));margin:0 auto;padding:100vh 0 0;text-align:center;font-size:16px;line-height:1.85}
 .roll section{margin-bottom:28vh}
-.roll .lbl{display:inline-block;font:700 12px var(--body);letter-spacing:.22em;color:#9d93b8;border-bottom:1px solid rgba(157,147,184,.35);padding-bottom:6px;margin-bottom:26px}
+.roll .lbl{display:inline-block;font-family:var(--display);font-size:22px;letter-spacing:.14em;color:#d6cdea;border-bottom:1.5px solid rgba(214,205,234,.35);padding:0 6px 8px;margin-bottom:30px}
 .roll h2{font-family:var(--display);font-weight:400;font-size:clamp(38px,6vw,58px);line-height:1.1;color:#fff;text-shadow:0 0 30px rgba(255,170,80,.3)}
 .roll h2 span{display:block;color:#ffcf7a}
 .roll .sub2{font-family:var(--display);font-size:20px;color:#b9afd2;margin-top:14px;letter-spacing:.08em}
@@ -123,13 +123,9 @@ h1 span{display:block;color:#ffcf7a}
 .vil.s2 img{border-color:rgba(255,77,94,.7);box-shadow:0 0 40px rgba(255,60,80,.45)}
 .vname{position:relative;height:70px;margin-top:18px;font-family:'DotGothic16',var(--display);font-size:52px;line-height:70px;color:#5ef0a0;text-shadow:0 0 18px rgba(94,240,160,.6);white-space:nowrap}
 .vname .q,.vname .tr{transition:opacity .35s}
-.vname .tr{position:absolute;left:50%;top:0;transform:translateX(-50%);opacity:0;color:#ff4d5e;text-shadow:0 0 22px rgba(255,60,80,.8);display:inline-flex}
-.vname .tr i{font-style:normal;display:inline-block;overflow:hidden;width:.42em;transition:width .7s ease .1s,opacity .5s}
-.vname .tr .t1,.vname .tr .t2{display:inline-block;position:relative}
-.vname .tr .t2{position:absolute;left:0;top:0;opacity:0;transition:opacity .6s .15s}
-.vname .tr .t1{transition:opacity .5s}
+.vname .tr{position:absolute;left:50%;top:0;transform:translateX(-50%);opacity:0;font-family:var(--display);font-size:60px;color:#ff4d5e;text-shadow:0 0 22px rgba(255,60,80,.8);transition:opacity .35s,filter .35s,letter-spacing .6s}
 .vil.s2 .q{opacity:0}.vil.s2 .tr{opacity:1}
-.vil.s3 .tr i{width:0;opacity:0}.vil.s3 .tr .t1{opacity:0}.vil.s3 .tr .t2{opacity:1}
+.vil .tr.swap{opacity:0!important;filter:blur(6px);letter-spacing:.3em}
 .vil.glitch .vname{animation:gl .5s steps(2) 2}
 @keyframes gl{0%{transform:translate(0)}25%{transform:translate(-4px,2px);filter:hue-rotate(90deg)}50%{transform:translate(3px,-2px)}75%{transform:translate(-2px,1px);filter:hue-rotate(-90deg)}100%{transform:none}}
 .vil .vr{font-size:15px;color:#a79fbd;margin-top:12px}
@@ -140,12 +136,16 @@ h1 span{display:block;color:#ffcf7a}
 .staff b{text-align:left;font-family:var(--display);font-weight:400;font-size:20px;color:#fff}
 .staff .gap{height:14px}
 .roll .quote{font-family:var(--display);font-size:22px;line-height:1.75;color:#fff;max-width:none}
-.finale{min-height:72vh;display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:0!important}
-.finale .cat{height:min(240px,30vh);width:auto;filter:drop-shadow(0 18px 24px rgba(0,0,0,.55));opacity:0;transform:translateY(18px);transform-origin:50% 100%;transition:opacity 1.4s,transform 1.4s cubic-bezier(.2,.8,.3,1)}
-.finale.go .cat{opacity:1;transform:none;animation:breathe 3.2s ease-in-out 1.4s infinite}
+.finale{min-height:72vh;padding-bottom:16vh;display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:0!important}
+/* old */.finale .catx{height:min(240px,30vh);width:auto;filter:drop-shadow(0 18px 24px rgba(0,0,0,.55));opacity:0;transform:translateY(18px);transform-origin:50% 100%;transition:opacity 1.4s,transform 1.4s cubic-bezier(.2,.8,.3,1)}
+.finale.go .catx{opacity:1;transform:none;animation:breathe 3.2s ease-in-out 1.4s infinite}
 @keyframes breathe{50%{transform:scaleY(1.025) scaleX(.99)}}
 .finale .paws{height:26px;margin-top:6px;font-size:16px;letter-spacing:14px;opacity:0;transition:opacity 1.4s .8s}
 .finale.go .paws{opacity:.7}
+.finale .duo{display:flex;justify-content:center;gap:0;margin-bottom:6px}
+.finale .duo img{width:min(230px,38vw,25vh);aspect-ratio:2/3;object-fit:cover;-webkit-mask:radial-gradient(ellipse 58% 60% at 50% 52%,#000 62%,transparent 100%);mask:radial-gradient(ellipse 58% 60% at 50% 52%,#000 62%,transparent 100%);opacity:0;transform:translateY(22px);transition:opacity 1.3s,transform 1.3s cubic-bezier(.2,.8,.3,1)}
+.finale .duo img+img{margin-left:-34px;transition-delay:.35s}
+.finale.go .duo img{opacity:1;transform:none}
 .finale .end{font-family:var(--display);font-size:46px;color:#ffcf7a;letter-spacing:.12em;margin-top:24px}
 .finale .note2{font-size:14px;color:#b9afd2}
 #crHint{position:absolute;right:20px;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;gap:14px;align-items:center;font-size:12.5px;color:#b9afd2;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:7px 12px}
@@ -254,22 +254,11 @@ h1 span{display:block;color:#ffcf7a}
     <section>
       <div class="vil" id="crVil">
         <img src="assets/npc/unknown_neutral.jpg" alt="">
-        <div class="vname"><span class="q">???</span><span class="tr"><span class="t1">T</span><span class="t2">트</span><i>.</i><span>로이</span></span></div>
+        <div class="vname"><span class="q">???</span><span class="tr" id="vTxt">T.로이</span></div>
         <div class="vr">끝내 얼굴을 드러내지 않은 공격자</div>
       </div>
     </section>
 
-    <section>
-      <div class="lbl">만든 사람</div>
-      <div class="staff">
-        <div><span>기획 · 이야기 · 연출</span><i></i><b>고태열</b></div>
-        <div class="gap"></div>
-        <div><span>캐릭터 · 장소 이미지</span><i></i><b>GPT</b></div>
-        <div><span>3D 모델링</span><i></i><b>Tripo</b></div>
-        <div><span>움직임</span><i></i><b>Mixamo</b></div>
-        <div><span>코딩 · 폴더 구성</span><i></i><b>Claude</b></div>
-      </div>
-    </section>
 
     <section>
       <div class="lbl">제작자의 말</div>
@@ -278,8 +267,7 @@ h1 span{display:block;color:#ffcf7a}
     </section>
 
     <section class="finale" id="crFin">
-      <img class="cat" src="assets/credits/patch3d.png" alt="고양이 패치">
-      <div class="paws">🐾 🐾 🐾</div>
+      <div class="duo"><img src="assets/credits/hero_chaerin.jpg" alt="홍채린"><img src="assets/credits/hero_boan.jpg" alt="서보안"></div>
       <div class="end">THE END</div>
     </section>
   </div></div>
@@ -358,7 +346,7 @@ const CR = { on: false, fast: false, raf: 0, last: 0, acc: 0, done: false, vil: 
 const crView = $('crView'), RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 function openCredit() {
   sound.play('click'); const ov = $('ovCredit'); ov.hidden = false; crView.scrollTop = 0;
-  ov.querySelectorAll('.lit').forEach(e => e.classList.remove('lit')); const v = $('crVil'); v.className = 'vil'; $('crFin').classList.remove('go'); $('crEnd').classList.remove('on');
+  ov.querySelectorAll('.lit').forEach(e => e.classList.remove('lit')); const v = $('crVil'); v.className = 'vil'; $('vTxt').textContent = 'T.로이'; $('vTxt').classList.remove('swap'); $('crFin').classList.remove('go'); $('crEnd').classList.remove('on');
   Object.assign(CR, { on: true, fast: false, last: performance.now(), acc: 0, done: false, vil: 0, fin: false });
   requestAnimationFrame(() => ov.classList.add('on')); cancelAnimationFrame(CR.raf); CR.raf = requestAnimationFrame(crTick);
 }
@@ -373,12 +361,13 @@ function crTick(now) {
     CR.vil = 1; const k = CR.fast ? 0.35 : 1;
     setTimeout(() => { v.classList.add('glitch'); sound.play('page'); }, 600 * k);
     setTimeout(() => { v.classList.remove('glitch'); v.classList.add('s2'); sound.play('alert'); }, 1500 * k);
-    setTimeout(() => v.classList.add('s3'), 3200 * k);
+    setTimeout(() => { const t = $('vTxt'); t.classList.add('swap'); setTimeout(() => { t.textContent = '트로이'; t.classList.remove('swap'); }, 380); }, 3200 * k);
   }
   const f = $('crFin'); if (!CR.fin && f.getBoundingClientRect().top < H * 0.75) { CR.fin = true; setTimeout(() => f.classList.add('go'), 200); }
   if (!CR.done && crView.scrollTop >= max - 2) { CR.done = true; setTimeout(() => CR.on && $('crEnd').classList.add('on'), 1600); }
   CR.raf = requestAnimationFrame(crTick);
 }
+if (matchMedia('(hover: none)').matches) $('crEnd').textContent = '화면을 누르면 메뉴로 돌아가요';
 $('bCredit').onclick = openCredit; $('crClose').onclick = closeCredit;
 crView.addEventListener('click', () => { if (CR.done) closeCredit(); });
 addEventListener('keydown', e => {
