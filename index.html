@@ -83,6 +83,20 @@ h1 span{display:block;color:#ffcf7a}
 #keyHint .sep{width:1px;align-self:stretch;background:rgba(255,255,255,.16)}
 @media (max-width:860px),(hover:none){#keyHint{display:none}}
 
+
+/* ---------- 새로 시작: 플레이 환경·난이도 고르기 ---------- */
+#ovSetup .card{max-width:620px}
+#ovSetup .q{font-family:var(--display);font-size:18px;margin:16px 0 8px;display:flex;align-items:baseline;gap:8px}
+#ovSetup .q small{font-family:var(--body);font-size:12.5px;color:var(--muted)}
+.pickrow{display:grid;gap:10px}
+.pickrow.two{grid-template-columns:1fr 1fr}.pickrow.three{grid-template-columns:repeat(3,1fr)}
+.pickrow button{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;padding:12px 10px;font-size:18px;background:var(--panel)}
+.pickrow button .ic{font-size:30px;line-height:1.1}
+.pickrow button small{font-family:var(--body);font-size:12.5px;color:var(--muted);line-height:1.45;text-wrap:balance}
+.pickrow button.on{background:#fff1b8;box-shadow:0 4px 0 var(--line),inset 0 0 0 3px var(--gold)}
+.pickrow button.on small{color:#6b5a2e}
+#ovSetup .tip{margin-top:10px;background:var(--panel2);border-radius:12px;padding:9px 12px;font-size:13.5px;line-height:1.6;color:#4b4452;text-align:center;text-wrap:balance}
+@media (max-width:520px){.pickrow.three{grid-template-columns:1fr}.pickrow.three button{flex-direction:row;justify-content:center;gap:10px}.pickrow.three button .ic{font-size:22px}}
 /* ---------- 제작 노트 (엔딩 크레딧) ---------- */
 #ovCredit{position:fixed;inset:0;z-index:20;background:radial-gradient(ellipse at 50% 40%,#17142a 0%,#0a0912 70%);color:#ece6f6;opacity:0;transition:opacity .5s}
 #ovCredit.on{opacity:1}
@@ -182,6 +196,24 @@ h1 span{display:block;color:#ffcf7a}
   <h2 id="nTitle">새로 시작할까요?</h2>
   <p id="nText"></p>
   <div class="row"><button id="nYes" class="go" type="button">기록 지우고 새로 시작</button><button id="nNo" type="button">취소</button></div>
+</div></div>
+
+<div id="ovSetup" class="ov" hidden><div class="card" role="dialog" aria-labelledby="sTitle">
+  <h2 id="sTitle">출근 준비</h2>
+  <p>어떤 기기로 플레이할지, 미니게임 난이도를 골라 주세요. 나중에 설정에서 바꿀 수 있어요.</p>
+  <div class="q">플레이 환경</div>
+  <div class="pickrow two" id="sDev">
+    <button type="button" data-dev="pc"><span class="ic">⌨️</span>PC<small>키보드로 움직이고<br>스페이스로 행동해요</small></button>
+    <button type="button" data-dev="tablet"><span class="ic">📱</span>태블릿<small>바닥을 눌러 달려가고<br>화면 버튼으로 행동해요</small></button>
+  </div>
+  <div class="q">난이도<small id="sDiffNote"></small></div>
+  <div class="pickrow three" id="sDiff">
+    <button type="button" data-diff="easy"><span class="ic">🌱</span>쉬움<small>천천히 · 시간 넉넉<br>하트 +1</small></button>
+    <button type="button" data-diff="normal"><span class="ic">🛡️</span>보통<small>처음 하는 학생에게<br>맞춘 기본값</small></button>
+    <button type="button" data-diff="hard"><span class="ic">🔥</span>어려움<small>빠른 속도 · 하트 3개<br>통과 기준 높음</small></button>
+  </div>
+  <div class="tip" id="sTip"></div>
+  <div class="row"><button id="sGo" class="go" type="button">이대로 시작하기</button><button id="sNo" type="button">취소</button></div>
 </div></div>
 
 <div id="ovEnd" class="ov" hidden><div class="card" role="dialog" aria-labelledby="eTitle" style="max-width:700px">
@@ -284,7 +316,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { store, sound, face, mountSettings } from './js/common.js';
+import { store, sound, face, mountSettings, touchMode } from './js/common.js';
 import { ENDINGS } from './js/story7.js';
 import { buildBunker, loadHero, seat, updateHero, SLOT } from './js/bunker-scene.js';
 const $ = id => document.getElementById(id);
@@ -302,9 +334,22 @@ $('endInfo').textContent = `${seen.filter(id => ENDS.some(e => e[0] === id)).len
 $('bNew').onclick = () => {
   sound.play('click');
   if (hasSave) { $('nText').textContent = `이 기기에 DAY ${save.day}까지의 기록이 있어요. 새로 시작하면 지금 기록은 지워져요.`; $('ovNew').hidden = false; return; }
-  location.href = 'game.html?new=1';
+  openSetup();
 };
-$('nYes').onclick = () => { store.clear(); location.href = 'game.html?new=1'; };
+$('nYes').onclick = () => { $('ovNew').hidden = true; openSetup(true); };
+/* 새로 시작 전: 플레이 환경 · 난이도 */
+const SETUP = { dev: 'pc', diff: 'normal', clear: false };
+const TIPS = { pc: '방향키로 이동 · Shift 달리기 · Space 행동·대화 · Ctrl 캐릭터 바꾸기', tablet: '바닥을 누르면 그곳까지 달려가요 · 대화창을 눌러 넘기고, 화면의 버튼으로 행동해요' };
+function syncSetup() {
+  document.querySelectorAll('#sDev button').forEach(b => b.classList.toggle('on', b.dataset.dev === SETUP.dev));
+  document.querySelectorAll('#sDiff button').forEach(b => b.classList.toggle('on', b.dataset.diff === SETUP.diff));
+  $('sTip').textContent = TIPS[SETUP.dev]; $('sDiffNote').textContent = '미니게임 속도와 기회 수가 달라져요';
+}
+function openSetup(clear) { const st = store.settings(); SETUP.dev = touchMode() ? 'tablet' : 'pc'; SETUP.diff = st.diff || 'normal'; SETUP.clear = !!clear; syncSetup(); $('ovSetup').hidden = false; }
+document.querySelectorAll('#sDev button').forEach(b => b.onclick = () => { SETUP.dev = b.dataset.dev; sound.play('click'); syncSetup(); });
+document.querySelectorAll('#sDiff button').forEach(b => b.onclick = () => { SETUP.diff = b.dataset.diff; sound.play('click'); syncSetup(); });
+$('sNo').onclick = () => { $('ovSetup').hidden = true; };
+$('sGo').onclick = () => { const st = store.settings(); st.device = SETUP.dev; st.diff = SETUP.diff; store.setSettings(st); if (SETUP.clear) store.clear(); sound.play('click'); location.href = 'game.html?new=1'; };
 $('nNo').onclick = () => { $('ovNew').hidden = true; };
 $('bCont').onclick = () => { sound.play('click'); location.href = 'game.html'; };
 $('bEnd').onclick = () => {
@@ -329,12 +374,15 @@ $('tBig').onclick = () => { const s = store.settings(); s.bigText = !s.bigText; 
 $('tClear').onclick = () => { const b = $('tClear'); if (!b.dataset.arm) { b.dataset.arm = 1; b.textContent = '한 번 더 누르면 삭제'; b.classList.add('go'); return; } store.clear(); b.textContent = '삭제했어요'; b.disabled = true; $('bCont').disabled = true; $('contInfo').textContent = '저장된 기록이 없어요'; };
 $('tClose').onclick = () => { $('ovTeach').hidden = true; };
 /* 메뉴 단축키 (화면 표시 없이) */
-const HK = { bNew: 'N', bCont: 'Space', bEnd: 'E', bTeach: 'T', bCredit: 'C', nYes: 'Space', nNo: 'X', eClose: 'Space', e1Close: 'Space', tSound: 'S', tBig: 'B', tClear: 'X', tClose: 'Space' };
+const HK = { sGo: 'Space', sNo: 'X', bNew: 'N', bCont: 'Space', bEnd: 'E', bTeach: 'T', bCredit: 'C', nYes: 'Space', nNo: 'X', eClose: 'Space', e1Close: 'Space', tSound: 'S', tBig: 'B', tClear: 'X', tClose: 'Space' };
 const CODE_OF = l => l === 'Space' ? 'Space' : 'Key' + l;
 addEventListener('keydown', e => {
   const open = [...document.querySelectorAll('.ov')].reverse().find(o => !o.hidden);
   if (e.key === 'Escape') { document.querySelectorAll('.ov').forEach(o => o.hidden = true); return; }
   if (e.repeat) return;
+  if (open && open.id === 'ovSetup') { const k = e.code; if (k === 'ArrowLeft' || k === 'ArrowRight') { e.preventDefault(); SETUP.dev = SETUP.dev === 'pc' ? 'tablet' : 'pc'; sound.play('click'); syncSetup(); return; }
+    if (k === 'ArrowUp' || k === 'ArrowDown') { e.preventDefault(); const L = ['easy', 'normal', 'hard'], i = L.indexOf(SETUP.diff); SETUP.diff = L[(i + (k === 'ArrowDown' ? 1 : 2)) % 3]; sound.play('click'); syncSetup(); return; }
+    if (k === 'Digit1' || k === 'Digit2' || k === 'Digit3') { SETUP.diff = ['easy', 'normal', 'hard'][+k.slice(5) - 1]; sound.play('click'); syncSetup(); return; } }
   const scope = open || document;
   const id = Object.keys(HK).find(id => { const b = $(id); return b && scope.contains(b) && (open || !b.closest('.ov')) && CODE_OF(HK[id]) === e.code && !b.disabled; });
   if (id) { e.preventDefault(); $(id).click(); }

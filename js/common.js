@@ -390,6 +390,9 @@ export const bgm = {
 
 /* ---------------- 설정 패널 (메인 화면·게임 일시정지에서 함께 사용) ----------------
    전체 소리 · 배경음 크기 슬라이더 + 난이도(쉬움/보통/어려움) */
+/* 플레이 환경: 'pc'(키보드) / 'tablet'(터치). 고르지 않았으면 기기에 맞춰 자동 */
+export const DEVICE_INFO = { pc: ['PC', '키보드로 조작'], tablet: ['태블릿', '손가락으로 터치해 조작'] };
+export function touchMode() { const d = store.settings().device; return d === 'tablet' ? true : d === 'pc' ? false : matchMedia('(pointer:coarse)').matches; }
 export const DIFF_INFO = { easy: ['쉬움', '천천히 · 시간 넉넉 · 하트 +1'], normal: ['보통', '처음 하는 학생에게 맞춘 기본값'], hard: ['어려움', '빠른 속도 · 하트 3개 · 통과 기준 높음'] };
 export function mountSettings(el) {
   if (!document.getElementById('setPanelCss')) { const st = document.createElement('style'); st.id = 'setPanelCss'; st.textContent = `
@@ -409,11 +412,15 @@ export function mountSettings(el) {
   el.innerHTML = `<div class="setp">
     <label class="row2"><b>전체 소리</b><input type="range" min="0" max="100" step="5" data-k="vol" value="${Math.round((s.vol ?? 0.8) * 100)}"><span class="pct">${pc(s.vol ?? 0.8)}</span></label>
     <label class="row2"><b>배경음 크기</b><input type="range" min="0" max="100" step="5" data-k="volMusic" value="${Math.round((s.volMusic ?? 0.8) * 100)}"><span class="pct">${pc(s.volMusic ?? 0.8)}</span></label>
+    <div class="diff"><div class="hd"><b>조작 방식</b><small data-v></small></div><div class="seg" style="grid-template-columns:1fr 1fr">${Object.keys(DEVICE_INFO).map(k => `<button type="button" data-dev="${k}">${DEVICE_INFO[k][0]}</button>`).join('')}</div><div class="note">게임 화면을 다시 열 때부터 적용돼요.</div></div>
     <div class="diff"><div class="hd"><b>미니게임 난이도</b><small data-d></small></div><div class="seg">${Object.keys(DIFF_INFO).map(k => `<button type="button" data-diff="${k}">${DIFF_INFO[k][0]}</button>`).join('')}</div><div class="note">바꾼 난이도는 다음 미니게임부터 적용돼요.</div></div></div>`;
   const syncD = () => { const d = store.settings().diff || 'normal'; el.querySelectorAll('[data-diff]').forEach(b => b.classList.toggle('on', b.dataset.diff === d)); el.querySelector('[data-d]').textContent = DIFF_INFO[d][1]; };
   el.querySelectorAll('input[type=range]').forEach(r => { r.addEventListener('input', () => { const v = +r.value / 100; r.nextElementSibling.textContent = pc(v);
     if (r.dataset.k === 'vol') { if (!sound.on && v > 0) sound.set(true); sound.setVol(v); } else bgm.setVol(v); });
     r.addEventListener('change', () => sound.play('notify')); r.addEventListener('keydown', e => e.stopPropagation()); });
+  const syncV = () => { const d = touchMode() ? 'tablet' : 'pc'; el.querySelectorAll('[data-dev]').forEach(b => b.classList.toggle('on', b.dataset.dev === d)); el.querySelector('[data-v]').textContent = DEVICE_INFO[d][1]; };
+  el.querySelectorAll('[data-dev]').forEach(b => b.onclick = () => { const s2 = store.settings(); s2.device = b.dataset.dev; store.setSettings(s2); sound.play('click'); syncV(); });
+  syncV();
   el.querySelectorAll('[data-diff]').forEach(b => b.onclick = () => { const s2 = store.settings(); s2.diff = b.dataset.diff; store.setSettings(s2); sound.play('click'); syncD(); });
   syncD();
 }

@@ -399,7 +399,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { CAST, GEAR, CONCEPT, glyph, iconCanvas, gearIcon, rr, fetchGLB, store, sound, bgm, josa, mountSettings, face as castFace } from './js/common.js';
+import { CAST, GEAR, CONCEPT, glyph, iconCanvas, gearIcon, rr, fetchGLB, store, sound, bgm, josa, mountSettings, face as castFace, touchMode } from './js/common.js';
 import { playAction } from './js/action.js';
 import { DAYS, ENDINGS, STATIONS, INSTALL_TEXT, ITEM_USE, STAT_LABEL, TRAIT_INFO } from './js/story7.js';
 const QS=new URLSearchParams(location.search);
@@ -1593,7 +1593,9 @@ const TOTAL=CAP.juho+CAP.harin;
 
 /* ---- 단축키 배지 (빨간 동그라미) ---- */
 /* 버튼 단축키: 화면에 배지는 그리지 않고 data-hk로만 연결. 보조 버튼은 이름 뒤에 (X)처럼 글자로만 알려 줘요 */
-function hk(el,label,show){if(!el)return;el.dataset.hk=label||'';if(show&&label&&!el.dataset.hkShown){el.dataset.hkShown=1;el.insertAdjacentText('beforeend',` (${label})`);}}
+/* 플레이 환경: 태블릿이면 터치 안내·터치 버튼 */
+const TOUCH=touchMode(),KT=(pc,t)=>TOUCH?t:pc;document.documentElement.classList.toggle('touch',TOUCH);
+function hk(el,label,show){if(!el)return;el.dataset.hk=label||'';if(show&&label&&!TOUCH&&!el.dataset.hkShown){el.dataset.hkShown=1;el.insertAdjacentText('beforeend',` (${label})`);}}
 const KEYLABEL=k=>k===' '?'Space':k==='enter'?'Enter':k==='escape'?'Esc':k.length===1?k.toUpperCase():k;
 function clickByHK(scope,k){const L=KEYLABEL(k);const b=[...scope.querySelectorAll('button')].find(b=>!b.disabled&&!b.hidden&&b.dataset.hk===L);if(b){b.click();return true;}return false;}
 [['btnPause','P'],['btnMus','M'],['btnFull','F'],['resGo','Space'],['startGo','Space'],['pResume','Space'],['dayGo','Space'],['sumGo','Space'],['endMain','Space'],['rYes','R'],['rNo','Space']].forEach(([id,l])=>hk($(id),l));
@@ -1618,7 +1620,7 @@ function renderBag(){
   const n=bagIds('juho').length+bagIds('harin').length;$('bagCount').textContent=PHASE==='prep'?n+' / '+TOTAL:`설치 ${S?Object.keys(S.installed).length:0} · 가방 ${n}`;
   const all=[...bagIds('juho'),...bagIds('harin'),...(S?Object.keys(S.installed):[])];
   ['auth','crypto','access'].forEach(c=>{const el=$('chip-'+c);const ok=all.some(id=>GEAR[id].concept===c);el.classList.toggle('ok',ok);el.style.background=ok?CONCEPT[c].color:'transparent';});
-  $('bagHint').textContent=PHASE==='prep'?'1~4 키(또는 칸 클릭)로 물건을 제자리에 내려놓아요':'1~4 키(또는 칸 클릭) · 사용 · 설치 · 건네기';
+  $('bagHint').textContent=PHASE==='prep'?KT('1~4 키(또는 칸 클릭)로 물건을 제자리에 내려놓아요','칸을 눌러 물건을 제자리에 내려놓아요'):KT('1~4 키(또는 칸 클릭) · 사용 · 설치 · 건네기','칸을 눌러 사용 · 설치 · 건네기');
   document.querySelectorAll('.bagrow').forEach(r=>r.classList.toggle('on',!!player&&r.dataset.who===player.key));
 }
 function slotClick(k,i,el){
@@ -1665,7 +1667,7 @@ function install(k,id){
   updateStatusBoard();renderBag();save();refreshQuest();refreshMarkers();checkDay();
 }
 function showInstInfo(id){const gd=GEAR[id],st=STATIONS[S.installed[id]]||{name:''};
-  pop.innerHTML=`<img src="${gearIcon(id,96)}" alt="" style="width:56px;height:56px;float:right;margin-left:8px;border-radius:10px"><h5>${esc(gd.name)}</h5><p style="font-size:11px;color:var(--muted)">설치됨 · ${esc(st.name)}</p><p>${esc(gd.desc)}</p><div class="use"><b>설치 효과</b><br>${esc(INSTALL_TEXT[id]||'')}<br>${esc(ITEM_USE[id]||'')}</div><div class="btns"><button type="button" class="go">닫기 (스페이스)</button></div>`;
+  pop.innerHTML=`<img src="${gearIcon(id,96)}" alt="" style="width:56px;height:56px;float:right;margin-left:8px;border-radius:10px"><h5>${esc(gd.name)}</h5><p style="font-size:11px;color:var(--muted)">설치됨 · ${esc(st.name)}</p><p>${esc(gd.desc)}</p><div class="use"><b>설치 효과</b><br>${esc(INSTALL_TEXT[id]||'')}<br>${esc(ITEM_USE[id]||'')}</div><div class="btns"><button type="button" class="go">${KT('닫기 (스페이스)','닫기')}</button></div>`;
   pop.style.left=Math.max(8,innerWidth/2-125)+'px';pop.style.top=(innerHeight/2)+'px';pop.style.transform='translateY(-50%)';pop.hidden=false;pop.querySelector('button').onclick=closePop;sound.play('click');}
 const seals=[];
 function showSeals(){if(!S||!S.taken||seals.length)return;for(const it of gear){if(S.taken.includes(it.id))continue;const s=labelSprite('⛔ 봉인 · 오염 의심','#fff','rgba(170,32,32,.92)');s.position.set(it.x,1.25,it.z);s.scale.set(1.05,0.26,1);OFF.add(s);
@@ -1809,7 +1811,7 @@ function blocked(x,z,self){
   return false;
 }
 function goTo(x,z){const p=player.root.position;path=findPath(player.map,p.x,p.z,x,z);target=path&&path.length?new THREE.Vector3(path[0][0],0,path[0][1]):null;
-  if(path){let L=0,ax=p.x,az=p.z;for(const [bx,bz] of path){L+=Math.hypot(bx-ax,bz-az);ax=bx;az=bz;}player.gait=L>2.6?'run':'walk';}}
+  if(path){let L=0,ax=p.x,az=p.z;for(const [bx,bz] of path){L+=Math.hypot(bx-ax,bz-az);ax=bx;az=bz;}player.gait=TOUCH||L>2.6?'run':'walk';}}
 let stuck=0;
 function wetFactor(){if(!player||player.map!=='office')return 1;const p=player.root.position;for(const h of HAZ)if(h.type==='wet'&&Math.hypot(p.x-h.x,p.z-h.z)<h.r)return h.slow;return 1;}
 function step(dt){
@@ -1969,7 +1971,7 @@ async function checkLowEnergy(){
     let offer=null;const food=slot('food'),cof=slot('coffee');
     if(food>=0){lines.push(['fix','worried',`${k==='harin'?'팀장님':'대리님'}, 손이 떨리고 계세요! 가방에 챙겨 온 ${GEAR.food.name}가 있어요. [${food+1}] 키를 눌러 드세요. 체력이 30 올라요.`]);offer={t:`${GEAR.food.name} 지금 열기 (체력 +30)`,id:'food'};}
     else if(cof>=0){lines.push(['fix','worried',`눈꺼풀이 무거워 보여요… 가방 속 커피 한 잔 어떠세요? [${cof+1}] 키로 마실 수 있어요. 체력 +15!`]);offer={t:'커피 지금 마시기 (체력 +15)',id:'coffee'};}
-    else if(inO('food')||inO('coffee'))lines.push(['fix','worried',`${o==='harin'?'홍 팀장님':'서 대리님'} 가방에 ${inO('food')?GEAR.food.name:'커피'}가 있어요! Ctrl 키로 캐릭터를 바꿔서 꺼내 드세요.`]);
+    else if(inO('food')||inO('coffee'))lines.push(['fix','worried',`${o==='harin'?'홍 팀장님':'서 대리님'} 가방에 ${inO('food')?GEAR.food.name:'커피'}가 있어요! ${KT('Ctrl 키로','오른쪽 아래 얼굴을 눌러')} 캐릭터를 바꿔서 꺼내 드세요.`]);
     else if(S.patchDay!==S.day)lines.push(['fix','worried','삐빅… '+(player.map==='bunker'?'':'지하 ')+'벙커 어딘가에서 작게 「야옹」 소리가 들려요. 지친 사람 곁에 있어 주는 걸 좋아하는 친구인데… 찾아보세요!']);
     else if(S.napDay!==S.day)lines.push(['fix','worried','오늘은 무리하지 마세요. '+(player.map==='bunker'?'':'벙커 ')+'휴게실 침상에서 잠깐 눈을 붙이면 기운이 날 거예요. 쉬는 것도 보안 업무예요!']);
     else lines.push(['fix','worried','오늘은 쓸 수 있는 회복 방법을 다 썼어요. 남은 일을 서둘러 마치면 밤에 푹 쉴 수 있어요. 무리한 선택은 피해 주세요!']);
@@ -2001,7 +2003,7 @@ function showActs(acts){
   curActs=acts;const k=acts.map(a=>a.key).join('|');if(k===nearKey)return;nearKey=k;
   if(!acts.length){hideCard();return;}
   const a=acts[0];$('cardImg').src=a.img;$('cardTag').textContent=a.tag;$('cardTag').style.background=a.lock?'#d9473a':'#7a5af5';$('cardName').textContent=a.title;$('cardDesc').textContent=a.desc;
-  $('cardRow').innerHTML=acts.map((q,i)=>`<button type="button" data-i="${i}"${i?'':' class="go"'}>${esc(acts.length>1&&i?q.title:q.btn)}</button>`).join('')+(matchMedia('(pointer:coarse)').matches?'':`<small>${['스페이스','X','C','V'].slice(0,acts.length).join(' · ')}</small>`);
+  $('cardRow').innerHTML=acts.map((q,i)=>`<button type="button" data-i="${i}"${i?'':' class="go"'}>${esc(acts.length>1&&i?q.title:q.btn)}</button>`).join('')+(TOUCH?'':`<small>${['스페이스','X','C','V'].slice(0,acts.length).join(' · ')}</small>`);
   $('cardRow').querySelectorAll('button').forEach(b=>b.onclick=()=>{const q=curActs[+b.dataset.i];q&&q.go();});
   $('card').classList.add('show');
 }
@@ -2027,7 +2029,7 @@ function showLine(){
   if(who==='sys'){L.classList.add('off');}else{L.innerHTML=figHtml(who,expr||'neutral',text);L.classList.remove('off');}
   if(q.prev&&q.prev[0]!==who&&q.prev[0]!=='sys'){Rf.innerHTML=figHtml(q.prev[0],q.prev[1]||'neutral',q.prev[2]);Rf.classList.remove('off');}else if(!q.prev||q.prev[0]==='sys')Rf.classList.add('off');
   $('dlgName').textContent=callName(who);$('dlgName').className='nm'+(who==='fix'?' ai':who==='sys'?' sys':'');
-  $('dlgBody').innerHTML=`<p>${esc(text)}</p><span class="nx">${q.i<q.lines.length-1?'스페이스로 계속 ▶':'스페이스로 닫기 ▶'}</span>`;
+  $('dlgBody').innerHTML=`<p>${esc(text)}</p><span class="nx">${q.i<q.lines.length-1?KT('스페이스로 계속 ▶','눌러서 계속 ▶'):KT('스페이스로 닫기 ▶','눌러서 닫기 ▶')}</span>`;
   if(who!=='sys')sound.play('page');
 }
 function dlgAdvance(){
@@ -2097,7 +2099,7 @@ function refreshQuest(){
     if(t.kind==='install')label+=` (${Math.min(Object.keys(S.installed).length,installNeed())}/${installNeed()})`;
     return `<li class="${done?'done':''}${t.optional?' optl':''}${act.has(t.id)?' cur':''}"><i>${done?'✓':''}</i><div><b><span class="loc ${t.map}">${MAPNAME[t.map]}</span>${esc(label)}</b>${done?'':`<small>${esc(t.hint||'')}${t.who?` · ${PEOPLE[t.who].name}만`:''}</small>`}</div></li>`;}).join('')
     +(!d.tasks.every(t=>t.optional||G.done(t.id)||(t.when&&!t.when(G)))?`<li><i></i><div><small>할 일을 마치면 마지막 결정이 열려요</small></div></li>`:'');
-  $('brandTitle').textContent=`DAY ${S.day} · ${d.title}`;$('brandSub').textContent='표시(!)가 있는 곳으로 가서 스페이스';
+  $('brandTitle').textContent=`DAY ${S.day} · ${d.title}`;$('brandSub').textContent=KT('표시(!)가 있는 곳으로 가서 스페이스','표시(!)가 있는 곳을 눌러 이동해요');
 }
 
 /* ================= 하루 흐름 ================= */
@@ -2180,7 +2182,7 @@ function showGearCard(it){
   $('cardImg').src=face(player.key,'focused');$('cardTag').textContent=CONCEPT[it.concept].label+' · '+it.room;$('cardTag').style.background=CONCEPT[it.concept].color;$('cardName').textContent=it.name;
   $('cardDesc').textContent=seenGear.has(it.id)?(ITEM_USE[it.id]||it.desc):'처음 보는 장비예요. 챙기면 시간이 멈추고, 어떤 장비인지 차분히 볼 수 있어요.';
   const full=BAGS[player.key].length>=CAP[player.key];
-  $('cardRow').innerHTML=`<button id="cardBtn" type="button" class="go"${full?' disabled':''}>${full?'가방이 꽉 찼어요':'챙기기'}</button><small>${matchMedia('(pointer:coarse)').matches?'':'스페이스'}</small>`;
+  $('cardRow').innerHTML=`<button id="cardBtn" type="button" class="go"${full?' disabled':''}>${full?'가방이 꽉 찼어요':'챙기기'}</button><small>${TOUCH?'':'스페이스'}</small>`;
   hk($('cardBtn'),'Space');$('cardBtn').onclick=()=>nearId&&take(nearId);$('card').classList.add('show');
 }
 /* 장비 첫 획득 연출: 시간 멈춤 → 머리 위로 들어 올리기 → 설명 팝업 */
@@ -2212,7 +2214,7 @@ function take(id){
   const it=gear.find(g=>g.id===id);if(!it||it.taken||it.fly||!player||player.busy>0||CH.phase!=='run')return;
   const mine=BAGS[player.key];
   if(mine.length>=CAP[player.key]){const other=npc.key,room=CAP[other]-BAGS[other].length;
-    toast(face(player.key,'surprised'),PEOPLE[player.key].name+' 가방이 꽉 찼어요',room>0?`${PEOPLE[other].name} 가방에는 ${room}칸이 남았어요. Ctrl로 바꾸거나 칸을 눌러 내려놓으세요.`:'팀 가방이 모두 찼어요.');hideCard();nearId=null;return;}
+    toast(face(player.key,'surprised'),PEOPLE[player.key].name+' 가방이 꽉 찼어요',room>0?`${PEOPLE[other].name} 가방에는 ${room}칸이 남았어요. ${KT('Ctrl로','얼굴을 눌러')} 바꾸거나 칸을 눌러 내려놓으세요.`:'팀 가방이 모두 찼어요.');hideCard();nearId=null;return;}
   it.taken=true;it.owner=player.key;mine.push(it);renderBag();sound.play('store');
   const first=!seenGear.has(it.id);if(first){seenGear.add(it.id);CH.phase='hold';timerEl.classList.add('hold');target=null;path=null;}
   const hide=()=>{hideItem(it,false);if(first&&CH.phase==='hold'){player.reach=null;startGet(it);}};if(player.bones&&player.bones.spine)startReach(player,it,hide);else hide();
@@ -2386,7 +2388,12 @@ Promise.all([loadModel('juho'),loadModel('harin')]).then(async([j,h])=>{
   renderSwap();
 }).catch(err=>{$('loadText').textContent='모델을 불러오지 못했어요. models 폴더를 확인해 주세요.';console.error(err);});
 loop();
-window.__dbg={FLY,dropItem,get GET(){return GET},gear,closeGet,get S(){return S},G,spawnAgent,placeCat,get PHASE(){return PHASE},get player(){return player},get chars(){return chars},agents,doTask,DAYS,startDay,setControl,travel,goTo,take,startChallenge,endChallenge,CH,activeTasks,install,talk,dlgAdvance,get curMap(){return curMap},UI,camera,
+if(TOUCH){const set=(sel,t)=>{const e=document.querySelector(sel);if(e)e.textContent=t;};
+  set('#otitle em','화면을 눌러 시작');set('#ogate span','▶ 화면을 눌러 인트로 시작');set('#cardHint','');
+  const ks=document.querySelector('.pick .keys');if(ks)ks.innerHTML='이동 <b>바닥을 톡</b> (자동으로 달려가요) · 캐릭터 바꾸기 <b>오른쪽 아래 얼굴</b> · 줍기·조사·행동 <b>화면의 버튼</b> · 대화 넘기기 <b>대화창을 톡</b> · 가방 장비 <b>칸을 톡</b>';
+  document.querySelectorAll('button').forEach(b=>{const n=[...b.childNodes].reverse().find(c=>c.nodeType===3&&c.textContent.trim());if(n)n.textContent=n.textContent.replace(/\s*\((?:Space|스페이스|Esc|[A-Z0-9](?: 길게)?)\)\s*$/,'');});
+  const cr=document.querySelector('#confirmR p');if(cr)cr.innerHTML='맨 처음 60초 준비부터 다시 시작해요. 지금까지의 기록은 지워져요.';}
+window.__dbg={TOUCH,FLY,dropItem,get GET(){return GET},gear,closeGet,get S(){return S},G,spawnAgent,placeCat,get PHASE(){return PHASE},get player(){return player},get chars(){return chars},agents,doTask,DAYS,startDay,setControl,travel,goTo,take,startChallenge,endChallenge,CH,activeTasks,install,talk,dlgAdvance,get curMap(){return curMap},UI,camera,
   teleport(x,z){player.root.position.set(x,0,z);camSnap=true;},endDay,petPatch,showEnding,findPath,blockedStatic,COLL};
 
 

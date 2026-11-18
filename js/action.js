@@ -2,7 +2,7 @@
    playAction(spec) -> Promise<{ok, score, skipped}>
    spec: {type, title, goal, how, learn, time, data, boosts:[{icon,label}], mod:{...}}
    흐름: 안내 카드(Space) -> 3·2·1 -> 게임 -> 결과 카드(Space). G 포기하기(글자 입력 게임은 길게) · 결과 화면 R 다시하기 */
-import { sound, store } from './common.js';
+import { sound, store, touchMode } from './common.js';
 /* 난이도 (설정에서 선택) — 보통이 기본, 어려움이 예전 난이도 */
 export const DIFFS = { easy: { name: '쉬움', speed: 0.72, rate: 0.78, slow: 1.35, lives: 1, pass: 0.55, time: 1.3 }, normal: { name: '보통', speed: 0.86, rate: 0.88, slow: 1.15, lives: 1, pass: 0.6, time: 1.15 }, hard: { name: '어려움', speed: 1, rate: 1, slow: 1, lives: 0, pass: 0.7, time: 1 } };
 const DIFF = () => DIFFS[store.settings().diff] || DIFFS.normal;
@@ -79,7 +79,7 @@ const CSS = `
 @media (max-width:760px){#ag .agbox{padding:14px 14px 10px;gap:9px}#ag .ag-keys em{display:none}#ag .ag-ft #agTip{font-size:12.5px}#ag .ag-pb{flex-basis:30%}}
 `;
 let root, cv, g, W = 0, H = 0, DPR = 1, raf = 0, game = null, resolveFn = null, ended = false, stage = 'off';
-const coarse = () => matchMedia('(pointer:coarse)').matches;
+const coarse = () => touchMode();
 const ui = {};
 function ensure() {
   if (root) return;
@@ -176,7 +176,7 @@ function setFrame(spec) {
   ui.agTitle.textContent = spec.title || '';
   const gear = (spec.boosts || []).filter(b => b.icon).map(b => b.label.replace(/\s*\((설치됨|가방)\)/, '')); ui.agGear.textContent = gear.join('   ·   ');
   const f = FOOT[spec.type] || ['', () => []]; ui.agTip.textContent = spec.tip || f[0];
-  ui.agKeys.innerHTML = f[1](spec).map(([k, l]) => `<span><kbd>${esc(k)}</kbd><em>${esc(l)}</em></span>`).join('');
+  ui.agKeys.innerHTML = coarse() ? '<span><em>👆 화면 아래 버튼으로 조작해요</em></span>' : f[1](spec).map(([k, l]) => `<span><kbd>${esc(k)}</kbd><em>${esc(l)}</em></span>`).join('');
   for (const k in uiCache) delete uiCache[k]; ui.agBar.style.background = BARC[spec.type] || '#e08a1e'; ui.agBar.style.width = '100%'; ui.agStat.textContent = ''; ui.agHearts.innerHTML = ''; ui.agClock.textContent = '00:00';
 }
 const fx = [];
@@ -673,6 +673,11 @@ function GAME_pass(spec) {
     let bits = s.length * Math.log2(cs); if (words >= 4) bits = Math.max(bits, words * 13); bits -= bad.length * 25 + (rep ? 10 : 0); bits = Math.max(0, bits);
     return { bits, bad, types, words, len: s.length, rep }; };
   const label = b => b < 28 ? ['몇 초', '#ff5a6e'] : b < 40 ? ['몇 시간', '#ff8f6b'] : b < 55 ? ['몇 달', '#ffb84d'] : b < 70 ? ['수천 년', '#5ef2b0'] : ['우주 나이보다 오래', '#5ef2b0'];
+  if (coarse()) { const tb = root.querySelector('#agT'); tb.hidden = false;
+    tb.innerHTML = '<input id="agPass" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40" placeholder="여기를 눌러 입력" style="flex:1 1 220px;max-width:420px;font:600 17px ui-monospace,monospace;padding:9px 12px;border:2px solid #2c2733;border-radius:10px;background:#fffdf9;color:#2c2733"><button type="button" id="agPassGo">제출</button>';
+    const inp = tb.querySelector('#agPass'); inp.addEventListener('input', () => { inp.value = inp.value.replace(/[^\x20-\x7e]/g, '').slice(0, 40); buf = inp.value; });
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
+    tb.querySelector('#agPassGo').onclick = () => submit(); setTimeout(() => inp.focus(), 50); }
   const submit = () => { tries++; const j = judge(buf); if (j.bits >= 60 && !j.bad.length) { sound.play('done'); api.end(true, Math.min(1, 0.6 + (j.bits - 60) / 60 + (tries === 1 ? 0.1 : 0))); }
     else { sound.play('alert'); fb = j.bad.length ? `"${j.bad[0]}"처럼 회사·이름·흔한 단어는 금방 추측돼요.` : j.len < 14 ? '더 길게! 짧은 암호는 컴퓨터가 모든 경우를 금방 시도해요.' : '단어 4개 이상을 이어 붙이거나 종류를 섞어 보세요.'; fbT = 3; } };
   return {
@@ -683,7 +688,7 @@ function GAME_pass(spec) {
     update(dt) { left -= dt; fbT = Math.max(0, fbT - dt); if (left <= 0) { const j = judge(buf); api.end(false, Math.min(0.5, j.bits / 120)); } },
     draw(dt, t) { g.fillStyle = '#0f1526'; g.fillRect(0, 0, W, H); bar(left / T, `남은 시간 ${Math.ceil(left)}초 · 제출 ${tries}번`, '#ffd75e');
       const j = judge(buf), [lb, lc] = label(j.bits);
-      g.fillStyle = '#cfe0ff'; g.font = FONT(15, 1); g.textAlign = 'left'; g.fillText('서버실 새 마스터 패스프레이즈 (영문 자판으로 입력)', 30, 80);
+      g.fillStyle = '#cfe0ff'; g.font = FONT(15, 1); g.textAlign = 'left'; g.fillText(coarse() ? '서버실 새 마스터 패스프레이즈 (아래 칸에 영문으로 입력 → 제출)' : '서버실 새 마스터 패스프레이즈 (영문 자판으로 입력)', 30, 80);
       g.fillStyle = '#fffdf9'; rr(30, 96, W - 60, 56, 10); g.fill(); g.fillStyle = '#2c2733'; g.font = MONO(22); g.fillText(buf + (Math.sin(t * 7) > 0 ? '▌' : ''), 44, 132);
       g.fillStyle = '#22304f'; rr(30, 172, W - 60, 18, 9); g.fill(); g.fillStyle = lc; rr(30, 172, (W - 60) * Math.min(1, j.bits / 90), 18, 9); g.fill();
       g.fillStyle = lc; g.font = FONT(15, 1); g.fillText(`예상 해독 시간: ${buf ? lb : '-'}`, 30, 216);
@@ -964,10 +969,15 @@ function GAME_greek(spec) {
     if (jm === want) { typed.push(jm); pos++; sound.play('page');
       if (pos >= F.length) { solved++; sound.play('done'); fb = { ok: true, t: `✓ 해독: "${phrases[r].map(s => s.sp ? ' ' : s.syl).join('')}"` }; fbT = 1.6; doneT = 1.5; } }
     else { miss++; shake = 0.3; left -= 1.5; sound.play('alert'); fb = { ok: false, t: `✗ ${GK_GREEK[GK_JAMO.indexOf(want)]} 는(은) "${jm}"가 아니에요 — 대응표를 다시 보세요 (-1.5초)` }; fbT = 1.4; } };
-  tbtns(null);
+  tbtns(null); let tbKey = '';
+  const touchPad = () => { const k = r + ':' + pos + ':' + (doneT > 0); if (!coarse() || k === tbKey) return; tbKey = k;
+    if (doneT > 0 || r >= phrases.length || !F[pos]) { tbtns(null); return; }
+    const want = F[pos].jm, pool = [...GK_JAMO].filter(j => j !== want), pick = [want];
+    while (pick.length < 5) { const j = pool.splice(Math.floor(Math.random() * pool.length), 1)[0]; pick.push(j); }
+    pick.sort(() => Math.random() - 0.5); tbtns([...pick.map(j => [j, () => input(j)]), ['⌫', () => { if (pos > 0 && doneT <= 0) { pos--; typed.pop(); } }]]); };
   return {
     key(code, down) { if (!down) return; if (code === 'Backspace') { if (pos > 0 && doneT <= 0) { pos--; typed.pop(); } return; } const jm = KEY2J[code]; if (jm) input(jm); },
-    update(dt) { fbT = Math.max(0, fbT - dt); shake = Math.max(0, shake - dt); if (r >= phrases.length) return;
+    update(dt) { touchPad(); fbT = Math.max(0, fbT - dt); shake = Math.max(0, shake - dt); if (r >= phrases.length) return;
       if (doneT > 0) { doneT -= dt; if (doneT <= 0) { r++; pos = 0; typed = []; if (r >= phrases.length) return finishAll(true); F = flat(); } return; }
       left -= dt; if (left <= 0) { left = 0; r = phrases.length; finishAll(false); } },
     draw(dt, t) { bg(); clock(left); bar(solved / phrases.length, `해독 ${Math.min(solved + (doneT > 0 ? 0 : 1), phrases.length)} / ${phrases.length} · 틀린 입력 ${miss}`);
@@ -1074,6 +1084,7 @@ let holdK = null, holdT0 = 0; // 글자 입력 게임은 G를 길게 눌러 포�
 const GAMEKEYS = /^(Key[A-Z]|Digit\d|Numpad\d|Space|Enter|Tab|Backspace|Arrow\w+|Minus|Period|Slash|NumpadDecimal|NumpadSubtract)$/;
 function onKey(e) {
   if (!root || root.hidden) return;
+  if (e.target && e.target.tagName === 'INPUT' && root.contains(e.target)) { e.stopPropagation(); return; }
   e.stopPropagation(); if (GAMEKEYS.test(e.code) || e.code === 'Escape') e.preventDefault();
   if (stage === 'intro' && e.code === 'Space') return root.querySelector('#agGo')?.click();
   if (stage === 'intro' && (e.code === 'ArrowLeft' || e.code === 'Backspace')) return playAction.back?.();
@@ -1086,7 +1097,7 @@ function onKey(e) {
       if (!e.repeat) { holdK = e.code; holdT0 = performance.now(); } else { if (holdK === e.code && performance.now() - holdT0 > 650) { holdK = null; return act(); } return; } }
     if (!ended) game?.key?.(e.code, true, e); }
 }
-function onKeyUp(e) { if (!root || root.hidden) return; if (e.code === holdK) holdK = null; e.stopPropagation(); if (stage === 'play' && game && !ended) game.key?.(e.code, false, e); }
+function onKeyUp(e) { if (!root || root.hidden) return; if (e.target && e.target.tagName === 'INPUT' && root.contains(e.target)) { e.stopPropagation(); return; } if (e.code === holdK) holdK = null; e.stopPropagation(); if (stage === 'play' && game && !ended) game.key?.(e.code, false, e); }
 function finish(ok, score, skipped) {
   if (ended || stage !== 'play') return; ended = true; const sc = Math.max(0, Math.min(1, score || 0));
   ui.agSkip.classList.add('off'); ui.agRe.classList.add('off'); tbtns(null); game?.cleanup?.();
@@ -1094,7 +1105,7 @@ function finish(ok, score, skipped) {
   const ico = skipped ? ['–', '#9aa3bf'] : ok ? ['✓', '#17a99a'] : ['✗', '#d9473a'];
   setTimeout(() => { stage = 'result'; $c().hidden = false;
     $c().innerHTML = `<div><div class="rico" style="background:${ico[1]}">${ico[0]}</div><h2>${tier}</h2>${skipped ? '' : `<div class="score">${Math.round(sc * 100)}점</div>`}
-      ${spec.learn ? `<div class="learn">💡 ${esc(spec.learn)}</div>` : ''}<div class="tutbtns" style="margin-top:14px"><button type="button" class="tutback" id="agRetry">다시하기 (R)</button><button type="button" id="agDone">계속 (Space)</button></div><div class="hint"><kbd>R</kbd> 처음 설명부터 다시 · <kbd>Space</kbd> 결과 확정하고 계속</div></div>`;
+      ${spec.learn ? `<div class="learn">💡 ${esc(spec.learn)}</div>` : ''}<div class="tutbtns" style="margin-top:14px"><button type="button" class="tutback" id="agRetry">${coarse() ? '다시하기' : '다시하기 (R)'}</button><button type="button" id="agDone">${coarse() ? '계속' : '계속 (Space)'}</button></div><div class="hint"><kbd>R</kbd> 처음 설명부터 다시 · <kbd>Space</kbd> 결과 확정하고 계속</div></div>`;
     $c().querySelector('#agRetry').onclick = () => { sound.play('click'); playAction.reintro?.(); };
     $c().querySelector('#agDone').onclick = () => { close(); resolveFn({ ok: !!ok && !skipped, score: skipped ? 0 : sc, skipped }); };
     // 점수 올라가는 연출 + 점수대별 효과음 (80점 이상 팡파르 · 성공 밝은 소리 · 실패/낮은 점수 내려가는 소리)
@@ -1115,7 +1126,7 @@ export function playAction(spec) {
     const how = esc(spec.how).replace(/\[([^\]]+)\]/g, '<kbd>$1</kbd>');
     $c().hidden = false; let pg = 0; const HT = HOWTO[spec.type] || [spec.goal, spec.how || '', '규칙에 맞게 처리하면 통과!'];
     const HEAD = ['이런 게임이에요', '이럴 땐 이렇게!', '이렇게 하면 통과!'];
-    const keysH = FOOT[spec.type] ? `<div class="keys">${FOOT[spec.type][1](spec).map(([k, l]) => `<span><kbd>${esc(k)}</kbd>${esc(l)}</span>`).join('')}</div>` : '';
+    const keysH = coarse() ? '<div class="keys"><span>👆 게임 화면 아래에 나오는 버튼이나 화면을 눌러 조작해요</span></div>' : FOOT[spec.type] ? `<div class="keys">${FOOT[spec.type][1](spec).map(([k, l]) => `<span><kbd>${esc(k)}</kbd>${esc(l)}</span>`).join('')}</div>` : '';
     const ICON = ['👀', '💡', '✅'];
     const render = () => { $c().classList.add('full'); $c().innerHTML = `<div class="tut">
       <div class="tuthd"><span class="tag">미니게임 안내</span><div class="tutttl"><small>STEP ${pg + 1} / 3</small><h4>${HEAD[pg]}</h4></div>
@@ -1123,7 +1134,7 @@ export function playAction(spec) {
       <div class="tutimg"><img src="assets/tut/${spec.type}_${pg + 1}.jpg" alt="" onerror="this.parentNode.style.display='none'"></div>
       <div class="tutcap"><span class="ic">${ICON[pg]}</span><div><p class="tuttx">${esc(HT[pg])}</p>${pg === 0 ? `<p class="tutgoal"><b>목표</b>${esc(spec.goal)}</p>` : ''}</div></div>
       ${pg === 1 ? keysH : ''}${pg === 2 ? `<div class="boost">${boosts}</div>` : ''}
-      <div class="tutft"><div class="hint">${pg === 2 ? `게임 중 <kbd>G</kbd> 포기${TYPING.has(spec.type) ? '(길게)' : ''}` : '<kbd>←</kbd> 이전 · <kbd>Space</kbd> 다음'}</div>
+      <div class="tutft"><div class="hint">${coarse() ? '' : pg === 2 ? `게임 중 <kbd>G</kbd> 포기${TYPING.has(spec.type) ? '(길게)' : ''}` : '<kbd>←</kbd> 이전 · <kbd>Space</kbd> 다음'}</div>
         <div class="tutbtns">${pg ? '<button type="button" class="tutback" id="agBack">← 이전</button>' : ''}<button type="button" id="agGo">${pg < 2 ? '다음 →' : '시작하기!'}</button></div><div></div></div></div>`;
       const bk = $c().querySelector('#agBack'); if (bk) bk.onclick = () => tutBack(); $c().querySelector('#agGo').onclick = go; };
     const tutBack = () => { if (stage === 'intro' && pg > 0) { pg--; sound.play('page'); render(); } }; playAction.back = tutBack;
@@ -1134,7 +1145,7 @@ export function playAction(spec) {
       if (stage !== 'intro') return; stage = 'count'; $c().classList.remove('full'); sound.play('click'); $c().innerHTML = '<div style="background:none;border:0;box-shadow:none"><div class="big" id="agN">3</div></div>';
       for (const n of ['3', '2', '1']) { $c().querySelector('#agN').textContent = n; sound.play('tick'); await new Promise(r => setTimeout(r, 600)); } sound.play('go');
       $c().hidden = true; size(); clkPrev = null; game = GAMES[spec.type](timed(spec)); stage = 'play';
-      const ty = TYPING.has(spec.type); ui.agSkip.classList.remove('off'); ui.agSkip.textContent = ty ? '포기하기 (G 길게)' : '포기하기 (G)'; ui.agRe.textContent = ty ? '다시하기 (R 길게)' : '다시하기 (R)';
+      const ty = TYPING.has(spec.type); ui.agSkip.classList.remove('off'); ui.agSkip.textContent = coarse() ? '포기하기' : ty ? '포기하기 (G 길게)' : '포기하기 (G)'; ui.agRe.textContent = coarse() ? '다시하기' : ty ? '다시하기 (R 길게)' : '다시하기 (R)';
       last = performance.now(); if (!raf) raf = requestAnimationFrame(loop);
     };
     }; intro();
