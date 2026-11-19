@@ -382,7 +382,7 @@ p,li,#dlgBody,#otx,.tuttx,.learn,#startText,#endText,#sumText,#resText,#dayText,
 <div class="dim" id="dayCard" hidden><div class="pick"><div class="dn" id="dayN">DAY 1</div><h2 id="dayTitle"></h2><span class="loc" id="dayLoc"></span><p id="dayText" style="margin-top:10px"></p><div class="res-btns"><button id="dayGo" class="go" type="button">시작</button></div></div></div>
 <div id="dlg" hidden><div id="stage"><div class="fig r off" id="figR"></div><div class="fig l off" id="figL"></div></div><div id="box"><span class="nm" id="dlgName"></span><div id="dlgBody"></div></div></div>
 <div class="dim" id="summary" hidden><div class="pick"><h2 id="sumTitle">하루 끝</h2><p id="sumText"></p><div class="deltas" id="sumDeltas"></div><div class="learned" id="sumLearn"></div><div class="res-btns"><button id="sumGo" class="go" type="button">다음 날로</button></div></div></div>
-<div class="dim" id="ending" hidden><div class="pick endpick"><div class="endgrid"><div class="endl"><img id="endImg" alt=""><span class="tag" style="display:inline-block;font-size:12px;font-weight:700;color:#fff;background:#7a5af5;border-radius:999px;padding:2px 10px">엔딩</span><h2 id="endTitle"></h2><p id="endText"></p><div class="deltas" id="endStats"></div></div><div class="endr"><div id="endTraits" class="traits"></div><div class="learned" id="endLog"></div></div></div><div class="res-btns endbtns"><button id="endMain" class="go" type="button">메인 화면으로 가기</button><button id="endAgain" type="button">바로 다시 시작하기</button></div></div></div>
+<div class="dim" id="ending" hidden><div class="pick endpick"><div class="endgrid"><div class="endl"><img id="endImg" alt=""><span class="tag" style="display:inline-block;font-size:12px;font-weight:700;color:#fff;background:#7a5af5;border-radius:999px;padding:2px 10px">엔딩</span><h2 id="endTitle"></h2><p id="endText"></p><div class="deltas" id="endStats"></div></div><div class="endr"><div id="endTraits" class="traits"></div><div class="learned" id="endLog"></div></div></div><div class="res-btns endbtns"><button id="endMain" class="go" type="button">🎬 엔딩 크레딧 보기</button><button id="endAgain" type="button">바로 다시 시작하기</button></div></div></div>
 <div class="dim" id="confirmR" hidden style="z-index:45"><div class="pick" style="max-width:400px"><h2>다시 시작하시겠습니까?</h2><p>맨 처음 60초 준비부터 다시 시작해요. 지금까지의 기록은 지워져요.<br><b>R</b> 한 번 더 → 다시 시작 · <b>스페이스</b> → 계속하기</p><div class="res-btns"><button class="go" id="rYes" type="button">처음부터 다시 시작</button><button id="rNo" type="button">계속하기</button></div></div></div>
 <div id="fade"></div>
 
@@ -2170,8 +2170,9 @@ function showEnding(){
   $('endLog').innerHTML=S.log.filter(l=>l.result).slice(-8).map(l=>`<div>DAY ${l.day} · ${esc(l.task)} — ${esc(l.result)}</div>`).join('');
   $('ending').hidden=false;UI.blocking=true;sound.play(e.mid||e.id==='E9'?'scoreLow':S.stats.S>=60?'scoreHi':'scoreMid');
 }
-$('endMain').onclick=()=>{location.href='index.html';};
-$('endAgain').onclick=()=>{store.clear();location.href='game.html?new=1';};
+/* 한 판이 끝나면 엔딩 크레딧을 틀고, 끝나면 메인(또는 바로 새 게임)으로 */
+$('endMain').onclick=()=>{location.href='index.html?credits=1';};
+$('endAgain').onclick=()=>{store.clear();location.href='index.html?credits=1&then=new';};
 $('endMain').classList.add('go');
 
 /* ================= 60초 준비 (DAY 0) ================= */
@@ -2393,7 +2394,7 @@ if(TOUCH){const set=(sel,t)=>{const e=document.querySelector(sel);if(e)e.textCon
   const ks=document.querySelector('.pick .keys');if(ks)ks.innerHTML='이동 <b>바닥을 톡</b> (자동으로 달려가요) · 캐릭터 바꾸기 <b>오른쪽 아래 얼굴</b> · 줍기·조사·행동 <b>화면의 버튼</b> · 대화 넘기기 <b>대화창을 톡</b> · 가방 장비 <b>칸을 톡</b>';
   document.querySelectorAll('button').forEach(b=>{const n=[...b.childNodes].reverse().find(c=>c.nodeType===3&&c.textContent.trim());if(n)n.textContent=n.textContent.replace(/\s*\((?:Space|스페이스|Esc|[A-Z0-9](?: 길게)?)\)\s*$/,'');});
   const cr=document.querySelector('#confirmR p');if(cr)cr.innerHTML='맨 처음 60초 준비부터 다시 시작해요. 지금까지의 기록은 지워져요.';}
-window.__dbg={TOUCH,FLY,dropItem,get GET(){return GET},gear,closeGet,get S(){return S},G,spawnAgent,placeCat,get PHASE(){return PHASE},get player(){return player},get chars(){return chars},agents,doTask,DAYS,startDay,setControl,travel,goTo,take,startChallenge,endChallenge,CH,activeTasks,install,talk,dlgAdvance,get curMap(){return curMap},UI,camera,
+window.__dbg={TOUCH,showEnding,FLY,dropItem,get GET(){return GET},gear,closeGet,get S(){return S},G,spawnAgent,placeCat,get PHASE(){return PHASE},get player(){return player},get chars(){return chars},agents,doTask,DAYS,startDay,setControl,travel,goTo,take,startChallenge,endChallenge,CH,activeTasks,install,talk,dlgAdvance,get curMap(){return curMap},UI,camera,
   teleport(x,z){player.root.position.set(x,0,z);camSnap=true;},endDay,petPatch,showEnding,findPath,blockedStatic,COLL};
 
 

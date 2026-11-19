@@ -185,7 +185,7 @@ h1 span{display:block;color:#ffcf7a}
     <button id="bCont" type="button" disabled><i>⟳</i><span>이어하기<small id="contInfo">저장된 기록이 없어요</small></span></button>
     <button id="bEnd" type="button"><i>📖</i><span>엔딩 도감<small id="endInfo">0 / 10</small></span></button>
     <button id="bTeach" type="button"><i>⚙️</i><span>설정<small>소리 크기, 난이도, 글자 크기, 저장 기록</small></span></button>
-    <button id="bCredit" type="button"><i>✍️</i><span>제작 노트<small>만든 사람 · 만든 이야기</small></span></button>
+    <button id="bCredit" type="button" disabled><i id="crIc">🔒</i><span>엔딩 크레딧<small id="crInfo">엔딩을 하나 보면 열려요</small></span></button>
   </div>
   <p class="foot">기록은 이 기기의 브라우저에 자동 저장돼요. 다른 기기에서는 이어지지 않아요.</p>
 </main>
@@ -239,11 +239,11 @@ h1 span{display:block;color:#ffcf7a}
 </div></div>
 
 
-<div id="ovCredit" hidden role="dialog" aria-label="제작 노트">
+<div id="ovCredit" hidden role="dialog" aria-label="엔딩 크레딧">
   <div id="crView"><div class="roll">
     <section>
       <h2>루프랩 보안팀,<span>7일의 방어</span></h2>
-      <div class="sub2">제작 노트</div>
+      <div class="sub2">엔딩 크레딧</div>
       <div class="maker">제작<b>고태열</b>경기도 화성 반월고등학교 기술 교사<br>「공학하는 기술쌤」 블로그 운영</div>
     </section>
 
@@ -398,7 +398,7 @@ function openCredit() {
   Object.assign(CR, { on: true, fast: false, last: performance.now(), acc: 0, done: false, vil: 0, fin: false });
   requestAnimationFrame(() => ov.classList.add('on')); cancelAnimationFrame(CR.raf); CR.raf = requestAnimationFrame(crTick);
 }
-function closeCredit() { if (!CR.on) return; CR.on = false; bgm.stop(); cancelAnimationFrame(CR.raf); const ov = $('ovCredit'); ov.classList.remove('on'); setTimeout(() => { if (!CR.on) ov.hidden = true; }, 450); $('bCredit').focus(); }
+function closeCredit() { if (!CR.on) return; CR.on = false; bgm.stop(); if (AFTER === 'new') { location.href = 'game.html?new=1'; return; } cancelAnimationFrame(CR.raf); const ov = $('ovCredit'); ov.classList.remove('on'); setTimeout(() => { if (!CR.on) ov.hidden = true; }, 450); $('bCredit').focus(); }
 function crTick(now) {
   if (!CR.on) return; const dt = Math.min(0.05, (now - CR.last) / 1000); CR.last = now;
   const max = crView.scrollHeight - crView.clientHeight;
@@ -416,7 +416,13 @@ function crTick(now) {
   CR.raf = requestAnimationFrame(crTick);
 }
 if (matchMedia('(hover: none)').matches) $('crEnd').textContent = '화면을 누르면 메뉴로 돌아가요';
-$('bCredit').onclick = openCredit; $('crClose').onclick = closeCredit;
+/* 엔딩을 하나라도 보면 열림. 게임 엔딩에서 넘어오면(?credits=1) 바로 상영 */
+const CREDIT_UNLOCK = seen.length > 0;
+if (CREDIT_UNLOCK) { $('bCredit').disabled = false; $('crIc').textContent = '🎬'; $('crInfo').textContent = '제작 의도 · 만든 과정 · 등장인물'; }
+const QS = new URLSearchParams(location.search), AFTER = QS.get('then');
+$('bCredit').onclick = openCredit;
+if (QS.get('credits') === '1') { history.replaceState(null, '', location.pathname); setTimeout(openCredit, 200);
+  const wake = () => { sound.ctx(); if (bgm.cur !== 'credits' && CR.on) bgm.mode('credits'); }; addEventListener('pointerdown', wake, { once: true, capture: true }); addEventListener('keydown', wake, { once: true, capture: true }); } $('crClose').onclick = closeCredit;
 crView.addEventListener('click', () => { if (CR.done) closeCredit(); });
 addEventListener('keydown', e => {
   if (!CR.on) return; e.preventDefault(); e.stopImmediatePropagation();
