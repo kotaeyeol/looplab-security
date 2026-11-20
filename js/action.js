@@ -141,7 +141,7 @@ function flushUI() { const s = clockV != null ? Math.max(0, Math.ceil(clockV)) :
   setUI('hearts', heartsV ? heartsV.join('/') : '', v => { ui.agHearts.innerHTML = heartsV ? Array.from({ length: heartsV[1] }, (_, i) => `<span class="${i < heartsV[0] ? '' : 'off'}">♥</span>`).join('') : ''; }); }
 /* ---- 하단 안내 · 조작 키 ---- */
 const FOOT = {
-  firewall: ['관문은 기본 차단이에요. 안전한 패킷만 번호 키로 허용하고, 위험한 건 그냥 두세요.', s => (s.data.lanes || []).map((l, k) => [String(k + 1), (l.short || l.name) + ' 허용'])],
+  firewall: ['관문은 기본 차단이에요. 안전한 패킷만 번호 키로 허용하고, 위험한 건 그냥 두세요.', s => (s.data.lanes || []).map((l, k) => [String(k + 1), l.short || l.name])],
   sort: ['보낸 사람 이름보다 회신 주소와 요청 내용을 확인하세요.', () => [['←', '안전'], ['→', '위험 신고']]],
   mfa: ['내가 요청하지 않은 로그인은 승인하지 마세요.', () => [['←', '거부'], ['→', '승인']]],
   deepcall: ['카운트다운 안에 흔적을 잡고, 둘만 아는 질문으로 확인하세요.', () => [['1', '영상'], ['2', '음성'], ['3', '요구'], ['↑↓', '고르기'], ['SPACE', '선택']]],
@@ -157,7 +157,7 @@ const FOOT = {
 };
 /* 시작 전 안내 팝업: 어떻게 하는 게임인지 3단계로 보여 줘요 */
 const HOWTO = {
-  firewall: ['패킷이 통로를 따라 와서 관문 앞에서 잠깐 멈춰요. 관문은 늘 닫혀 있어요(기본 차단).', '왼쪽 허용 규칙에 맞는 패킷이면, 노란 시간 고리가 끝나기 전에 그 통로 번호 키(1·2·3)를 눌러 허용해요.', '빨갛게 반짝이는 위험 패킷은 아무것도 누르지 마세요. 시간이 끝나면 자동 차단! 안전한 것만 열어 주면 통과!'],
+  firewall: ['패킷이 통로를 따라 와서 관문 앞에서 잠깐 멈춰요. 관문은 늘 닫혀 있어요(기본 차단).', '왼쪽 허용 규칙에 맞는 패킷이면, 노란 시간 고리가 끝나기 전에 그 통로 번호 키(1~5)를 눌러 허용해요. 업무 패킷을 3번 막으면 하트가 하나 줄어요.', '빨갛게 반짝이는 위험 패킷은 아무것도 누르지 마세요. 시간이 끝나면 자동 차단! 안전한 것만 열어 주면 통과!'],
   sort: ['메일·문자·메신저 카드가 위에서 떨어져요.', '보낸 사람, 회신 주소, 링크, 요청 내용을 꼼꼼히 봐요.', '바닥에 닿기 전에 안전하면 ←, 위험하면 → 로 보내요.'],
   mfa: ['왼쪽 관제 화면에는 지금 실제로 로그인 중인 직원이, 오른쪽 휴대폰에는 로그인 승인 요청이 떠요.', '이름 · 위치 · 기기 · 번호를 양쪽에서 비교해요. 하나라도 다르거나 로그인 중인 직원이 없으면 수상해요.', '본인 요청이면 → 승인, 아니면 ← 거부. 시간이 지나면 자동으로 거부돼요.'],
   deepcall: ['대표님 얼굴과 목소리로 급한 송금을 요구하는 영상통화가 와요. ① 흔적 잡기 → ② 질문하기, 두 단계예요.', '① 장면마다 3·2·1 카운트다운이 돌아요. 그 안에 이상한 흔적을 종류에 맞게 1 영상 · 2 음성 · 3 요구 키로 잡아요. 평범한 장면은 그냥 두세요.', '② ↑↓·Space로 진짜 대표님만 답할 수 있는 질문 2개를 골라요. 둘만 아는 질문에 얼버무리면 가짜라는 증거예요!'],
@@ -293,32 +293,33 @@ function GAME_sort(spec) {
    ================================================================= */
 function GAME_firewall(spec) {
   /* 기본 차단(default deny): 패킷이 관문 앞에서 멈추면 규칙에 맞는 것만 번호 키로 허용. 가만히 두면 자동 차단 */
-  const T = spec.time || 45, lanes = spec.data.lanes, pk = spec.data.packets, hint = !!spec.mod?.hint, E = DIFF();
-  const WAIT = (hint ? 4.2 : 3.6) * E.slow, n = lanes.length;
-  let left = T, list = [], spawn = 0.3, lives = 3 + E.lives, good = 0, total = 0;
+  const T = spec.data.fixedTime || spec.time || 45, lanes = spec.data.lanes, pk = spec.data.packets, hint = !!spec.mod?.hint, E = DIFF();
+  const WAIT = (hint ? 2.6 : 2.2) * E.slow, n = lanes.length, JAM = 3;
+  let left = T, list = [], spawn = 0.3, lives = 3 + E.lives, good = 0, total = 0, jam = 0;
   const gate = lanes.map(() => ({ open: 0, flash: 0, col: '' })), srv = lanes.map(() => ({ flash: 0, col: '' }));
   const L = () => { const tx0 = Math.max(200, W * 0.24), gx = W * 0.70, sw = Math.min(118, W * 0.12); return { tx0, gx, stopX: gx - 30, sw, sx: gx + 34, top: 8, rowH: (H - 16) / n }; };
   const laneY = k => 8 + (k + 0.5) * ((H - 16) / n);
-  const kind = s => /와이파이/.test(s) ? 'wifi' : /외부|IP/.test(s) ? 'globe' : /인턴|직원/.test(s) ? 'person' : /알 수 없는/.test(s) ? 'q' : /숨은|문서/.test(s) ? 'doc' : /픽스/.test(s) ? 'bot' : /백업/.test(s) ? 'clock' : 'pc';
+  const kind = s => /출입증|카드/.test(s) ? 'person' : /메신저|첨부|송금/.test(s) ? 'doc' : /와이파이/.test(s) ? 'wifi' : /외부|IP/.test(s) ? 'globe' : /인턴|직원/.test(s) ? 'person' : /알 수 없는/.test(s) ? 'q' : /숨은|문서/.test(s) ? 'doc' : /픽스/.test(s) ? 'bot' : /백업/.test(s) ? 'clock' : 'pc';
   const head = k => list.filter(p => p.lane === k && p.st === 'move' || p.lane === k && p.st === 'wait').sort((a, b) => b.x - a.x)[0];
   function judge(p, allow) { total++; const y = laneY(p.lane), l = L();
     if (allow) { gate[p.lane].open = 1; p.st = 'pass';
       if (p.ok) { good++; srv[p.lane].flash = 1; srv[p.lane].col = PAL.tealHi; pop(l.sx + l.sw / 2, y - 46, '허용 ✓', '#3fd6bd'); sound.play('store'); }
       else { lives--; p.breach = true; srv[p.lane].flash = 1; srv[p.lane].col = PAL.redHi; pop(l.sx + l.sw / 2, y - 46, '침입!', '#ff7a6e'); sound.play('alert'); } }
     else { p.st = 'gone'; p.t = 0;
-      if (p.ok) { gate[p.lane].flash = 1; gate[p.lane].col = '#ffb84d'; pop(l.stopX - 60, y - 40, '업무 막힘', '#ffb84d'); sound.play('page'); }
+      if (p.ok) { gate[p.lane].flash = 1; gate[p.lane].col = '#ffb84d'; jam++;
+        if (jam % JAM === 0) { lives--; pop(l.stopX - 60, y - 40, '업무 마비! ♥-1', '#ff7a6e'); sound.play('alert'); } else { pop(l.stopX - 60, y - 40, `업무 막힘 ${jam % JAM}/${JAM}`, '#ffb84d'); sound.play('page'); } }
       else { good++; gate[p.lane].flash = 1; gate[p.lane].col = PAL.tealHi; pop(l.stopX - 60, y - 40, '자동 차단!', '#3fd6bd'); sound.play('store'); } }
     if (lives <= 0) api.end(false, good / Math.max(1, total) * 0.5); }
   globalThis.__agFw = () => list.filter(p => p.st === 'wait').map(p => [p.lane, p.ok]); // 자동 테스트·캡처용
   const allow = k => { if (k >= n) return; const p = list.find(q => q.lane === k && q.st === 'wait'); if (p) judge(p, true); else sound.play('click'); };
   tbtns(lanes.map((l, k) => [`${k + 1} · ${l.short || l.name} 허용`, () => allow(k)]));
   return {
-    key(code, down) { if (!down) return; const m = code.match(/^(?:Digit|Numpad)([1-9])$/); if (m) allow(+m[1] - 1); const q = { KeyQ: 0, KeyW: 1, KeyE: 2 }[code]; if (q != null) allow(q); },
+    key(code, down) { if (!down) return; const m = code.match(/^(?:Digit|Numpad)([1-9])$/); if (m) allow(+m[1] - 1); const q = { KeyQ: 0, KeyW: 1, KeyE: 2, KeyR: 3, KeyT: 4 }[code]; if (q != null) allow(q); },
     down(x, y) { const l = L(); if (x > l.tx0) allow(Math.floor((y - l.top) / l.rowH)); },
     update(dt) { left -= dt; spawn -= dt; const prog = 1 - left / T, l = L(), span = l.stopX - l.tx0;
-      if (spawn <= 0) { spawn = rnd(1.5, 2.2) * (1 - prog * 0.25) / E.rate;
+      if (spawn <= 0) { spawn = rnd(0.7, 1.05) * (1 - prog * 0.3) / E.rate;
         const free = lanes.map((_, k) => k).filter(k => list.filter(p => p.lane === k && (p.st === 'move' || p.st === 'wait')).length < 2);
-        if (free.length) { const k = pick(free), p = pick(pk.filter(q => q.lane === k)); g.font = FONT(13, 1); list.push({ ...p, x: 0, v: rnd(150, 175) * (1 + prog * 0.3) * E.speed, w: g.measureText(p.label).width + 60, st: 'move', t: 0, kind: kind(p.label) }); } }
+        if (free.length) { const k = pick(free), p = pick(pk.filter(q => q.lane === k)); g.font = FONT(13, 1); list.push({ ...p, x: 0, v: rnd(240, 280) * (1 + prog * 0.35) * E.speed, w: g.measureText(p.label).width + 60, st: 'move', t: 0, kind: kind(p.label) }); } }
       for (const gt of gate) { gt.open = Math.max(0, gt.open - dt * 1.4); gt.flash = Math.max(0, gt.flash - dt * 2); }
       for (const s of srv) s.flash = Math.max(0, s.flash - dt * 1.6);
       for (const p of [...list]) { p.t += dt;
@@ -330,43 +331,43 @@ function GAME_firewall(spec) {
         else if (p.st === 'gone' && p.t > 0.55) list.splice(list.indexOf(p), 1); }
       if (ended) return;
       if (left <= 0) { const s = good / Math.max(1, total); api.end(s >= E.pass, s); } },
-    draw(dt, t) { bg(); clock(left); bar(left / T, `기본 차단 중 · 판단 정확도 ${total ? Math.round(good / total * 100) : 100}%`); hearts(lives, 3 + E.lives);
-      const l = L(), lx = 22;
+    draw(dt, t) { bg(); clock(left); bar(left / T, `기본 차단 중 · 판단 정확도 ${total ? Math.round(good / total * 100) : 100}% · 업무 막힘 ${jam % JAM}/${JAM}`); hearts(lives, 3 + E.lives);
+      const l = L(), lx = 22, S = Math.min(1, l.rowH / 104);
       lanes.forEach((ln, k) => { const y = laneY(k), waitP = list.find(p => p.lane === k && p.st === 'wait');
         if (k) { g.strokeStyle = PAL.line; g.lineWidth = 1; g.beginPath(); g.moveTo(lx, l.top + l.rowH * k); g.lineTo(W - 18, l.top + l.rowH * k); g.stroke(); }
         /* zone card */
-        const ic = ['pc', 'clock', 'bot'][k] || 'pc'; g.fillStyle = '#323a5c'; g.beginPath(); g.arc(lx + 20, y - 18, 18, 0, 7); g.fill(); glyph(ic, lx + 20, y - 18, 11, '#cfe0ff');
-        g.fillStyle = '#fff'; g.font = JUA(19); g.textAlign = 'left'; g.fillText(ln.name, lx + 46, y - 12);
-        g.fillStyle = 'rgba(23,169,154,.16)'; rr(lx, y + 2, l.tx0 - lx - 16, 38, 8); g.fill(); g.fillStyle = PAL.tealHi; g.font = FONT(11.5, 1); g.fillText('허용', lx + 8, y + 17);
-        g.fillStyle = '#d7f5ef'; g.font = FONT(11.5); wrap(ln.rule, lx + 40, y + 17, l.tx0 - lx - 62, 14, 2);
+        const ic = ['pc', 'clock', 'bot', 'person', 'doc'][k] || 'pc'; g.fillStyle = '#323a5c'; g.beginPath(); g.arc(lx + 20, y - 18 * S, 18 * S, 0, 7); g.fill(); glyph(ic, lx + 20, y - 18 * S, 11 * S, '#cfe0ff');
+        g.fillStyle = '#fff'; g.font = JUA(Math.round(19 * Math.max(0.84, S))); g.textAlign = 'left'; g.fillText(ln.name, lx + 46, y - 12 * S);
+        g.fillStyle = 'rgba(23,169,154,.16)'; rr(lx, y + 2 * S, l.tx0 - lx - 16, 38 * S, 8); g.fill(); g.fillStyle = PAL.tealHi; g.font = FONT(11.5, 1); g.fillText('허용', lx + 8, y + 17 * S);
+        g.fillStyle = '#d7f5ef'; g.font = FONT(11.5); wrap(ln.rule, lx + 40, y + 17 * S, l.tx0 - lx - 62, 13, 2);
         /* pipe */
         const px = l.tx0, pw = l.stopX - l.tx0 + 6; const gr = g.createLinearGradient(px, 0, px + pw, 0); gr.addColorStop(0, '#20263d'); gr.addColorStop(1, '#2a3150');
-        g.fillStyle = gr; rr(px, y - 26, pw, 52, 26); g.fill(); g.strokeStyle = '#3d4670'; g.lineWidth = 1.5; g.stroke();
+        g.fillStyle = gr; rr(px, y - 26 * S, pw, 52 * S, 26 * S); g.fill(); g.strokeStyle = '#3d4670'; g.lineWidth = 1.5; g.stroke();
         g.save(); g.setLineDash([10, 14]); g.lineDashOffset = -t * 40; g.strokeStyle = 'rgba(140,155,210,.22)'; g.lineWidth = 2; g.beginPath(); g.moveTo(px + 20, y); g.lineTo(px + pw - 10, y); g.stroke(); g.restore();
         /* gate */
         const gt = gate[k], op = gt.open, gc = gt.flash > 0 ? gt.col : op > 0.05 ? PAL.tealHi : PAL.red;
-        g.save(); g.shadowColor = gc; g.shadowBlur = 16 + gt.flash * 18; g.fillStyle = '#171b2c'; rr(l.gx - 14, y - 46, 28, 92, 10); g.fill(); g.restore();
-        g.strokeStyle = gc; g.lineWidth = 2.5; rr(l.gx - 14, y - 46, 28, 92, 10); g.stroke();
-        for (let i = 0; i < 5; i++) { const by = y - 36 + i * 17 - op * 70; if (by < y - 44) continue; g.fillStyle = gc; rr(l.gx - 9, by, 18, 7, 3); g.fill(); }
-        g.fillStyle = op > 0.05 ? '#7ff0dc' : '#ff9a90'; g.font = FONT(11, 1); g.textAlign = 'center'; g.fillText(op > 0.05 ? '열림' : '기본 차단', l.gx, y - 54);
+        g.save(); g.shadowColor = gc; g.shadowBlur = 16 + gt.flash * 18; g.fillStyle = '#171b2c'; rr(l.gx - 14, y - 40 * S, 28, 80 * S, 10); g.fill(); g.restore();
+        g.strokeStyle = gc; g.lineWidth = 2.5; rr(l.gx - 14, y - 40 * S, 28, 80 * S, 10); g.stroke();
+        for (let i = 0; i < 5; i++) { const by = y - 32 * S + i * 14.5 * S - op * 62 * S; if (by < y - 38 * S) continue; g.fillStyle = gc; rr(l.gx - 9, by, 18, 7 * S, 3); g.fill(); }
+        g.fillStyle = op > 0.05 ? '#7ff0dc' : '#ff9a90'; g.font = FONT(11, 1); g.textAlign = 'center'; g.font = FONT(10, 1); g.fillText(op > 0.05 ? '열림' : '기본 차단', l.gx, y - 40 * S - 5);
         /* server rack */
         const sv = srv[k], sx = l.sx, sw = l.sw; g.save(); if (sv.flash > 0) { g.shadowColor = sv.col; g.shadowBlur = 24 * sv.flash; }
-        g.fillStyle = '#2b3150'; rr(sx, y - 34, sw, 68, 10); g.fill(); g.restore(); g.strokeStyle = sv.flash > 0 ? sv.col : '#5a6390'; g.lineWidth = 1.6; rr(sx, y - 34, sw, 68, 10); g.stroke();
-        for (let i = 0; i < 3; i++) { g.fillStyle = '#1b2035'; rr(sx + 8, y - 27 + i * 14, 34, 9, 2); g.fill(); g.fillStyle = (Math.sin(t * 6 + i * 2 + k) > 0) ? '#5fe08a' : '#2f6b48'; g.beginPath(); g.arc(sx + 50, y - 22.5 + i * 14, 2.6, 0, 7); g.fill(); }
-        g.fillStyle = '#e9ecf5'; g.font = FONT(12, 1); g.textAlign = 'center'; g.fillText(ln.dest || '서버', sx + sw / 2, y + 26);
+        g.fillStyle = '#2b3150'; rr(sx, y - 34 * S, sw, 68 * S, 10); g.fill(); g.restore(); g.strokeStyle = sv.flash > 0 ? sv.col : '#5a6390'; g.lineWidth = 1.6; rr(sx, y - 34 * S, sw, 68 * S, 10); g.stroke();
+        for (let i = 0; i < 3; i++) { g.fillStyle = '#1b2035'; rr(sx + 8, y - 27 * S + i * 14 * S, 34, 9 * S, 2); g.fill(); g.fillStyle = (Math.sin(t * 6 + i * 2 + k) > 0) ? '#5fe08a' : '#2f6b48'; g.beginPath(); g.arc(sx + 50, y - 22.5 * S + i * 14 * S, 2.6, 0, 7); g.fill(); }
+        g.fillStyle = '#e9ecf5'; g.font = FONT(12, 1); g.textAlign = 'center'; g.fillText(ln.dest || '서버', sx + sw / 2, y + 26 * S + 1);
         /* key prompt */
-        const kx = sx + sw + 12; if (kx + 40 < W) { const pulse = waitP ? 0.5 + 0.5 * Math.sin(t * 10) : 0; g.save(); if (waitP) { g.shadowColor = '#ffd75e'; g.shadowBlur = 10 + 10 * pulse; } keycap(kx, y - 28, String(k + 1), !!waitP, 36); g.restore();
-          g.fillStyle = waitP ? '#ffd75e' : PAL.muted; g.font = FONT(11, 1); g.textAlign = 'center'; g.fillText(waitP ? '허용?' : '대기', kx + 18, y + 20); } });
+        const kx = sx + sw + 12; if (kx + 40 < W) { const pulse = waitP ? 0.5 + 0.5 * Math.sin(t * 10) : 0; g.save(); if (waitP) { g.shadowColor = '#ffd75e'; g.shadowBlur = 10 + 10 * pulse; } keycap(kx, y - 28 * S, String(k + 1), !!waitP, 36); g.restore();
+          g.fillStyle = waitP ? '#ffd75e' : PAL.muted; g.font = FONT(11, 1); g.textAlign = 'center'; g.fillText(waitP ? '허용?' : '대기', kx + 18, y + 20 * S + 2); } });
       /* packets */
       g.save(); g.beginPath(); g.rect(l.tx0, 0, l.sx - l.tx0 - 2, H); g.clip();
       for (const p of list) { const y = laneY(p.lane), cx = l.tx0 + 6 + p.x, tw = p.w;
         let a = 1, dy = 0; if (p.st === 'pass') a = Math.max(0, 1 - (p.x - (l.stopX - l.tx0) + p.w / 2) / (p.w + 40)); if (p.st === 'gone') { a = Math.max(0, 1 - p.t / 0.55); dy = p.ok ? 0 : -p.t * 30; } g.globalAlpha = a;
         const bad = !p.ok && !p.breach && p.st !== 'gone', on = hint ? 1 : 0.5 + 0.5 * Math.sin(t * 9);
-        g.fillStyle = p.breach ? PAL.red : '#1c2b3a'; rr(cx - tw / 2, y - 18 + dy, tw, 36, 18); g.fill();
-        if (bad) { g.save(); g.globalAlpha *= hint ? 0.85 : 0.25 + 0.6 * on; g.shadowColor = '#ff4a3d'; g.shadowBlur = hint ? 10 : 8 + 14 * on; g.fillStyle = '#b8323a'; rr(cx - tw / 2, y - 18 + dy, tw, 36, 18); g.fill(); g.restore(); }
-        const wt = p.st === 'wait'; g.lineWidth = wt ? 3 : 2; g.strokeStyle = wt ? '#ffd75e' : bad ? (hint || on > 0.5 ? '#ff6a5e' : '#8f97b8') : hint && p.ok ? PAL.teal : '#8f97b8'; rr(cx - tw / 2, y - 18 + dy, tw, 36, 18); g.stroke();
-        const ix = cx - tw / 2 + 19; g.fillStyle = 'rgba(255,255,255,.12)'; g.beginPath(); g.arc(ix, y + dy, 13, 0, 7); g.fill(); glyph(p.kind, ix, y + dy, 8, '#fff');
-        if (wt) { const f = Math.max(0, p.wait / WAIT); g.strokeStyle = f < 0.35 ? '#ff7a6e' : '#ffd75e'; g.lineWidth = 3; g.beginPath(); g.arc(ix, y, 15.5, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2); g.stroke(); }
+        g.fillStyle = p.breach ? PAL.red : '#1c2b3a'; rr(cx - tw / 2, y - 18 * S + dy, tw, 36 * S, 18 * S); g.fill();
+        if (bad) { g.save(); g.globalAlpha *= hint ? 0.85 : 0.25 + 0.6 * on; g.shadowColor = '#ff4a3d'; g.shadowBlur = hint ? 10 : 8 + 14 * on; g.fillStyle = '#b8323a'; rr(cx - tw / 2, y - 18 * S + dy, tw, 36 * S, 18 * S); g.fill(); g.restore(); }
+        const wt = p.st === 'wait'; g.lineWidth = wt ? 3 : 2; g.strokeStyle = wt ? '#ffd75e' : bad ? (hint || on > 0.5 ? '#ff6a5e' : '#8f97b8') : hint && p.ok ? PAL.teal : '#8f97b8'; rr(cx - tw / 2, y - 18 * S + dy, tw, 36 * S, 18 * S); g.stroke();
+        const ix = cx - tw / 2 + 19; g.fillStyle = 'rgba(255,255,255,.12)'; g.beginPath(); g.arc(ix, y + dy, 13 * S, 0, 7); g.fill(); glyph(p.kind, ix, y + dy, 8 * S, '#fff');
+        if (wt) { const f = Math.max(0, p.wait / WAIT); g.strokeStyle = f < 0.35 ? '#ff7a6e' : '#ffd75e'; g.lineWidth = 3; g.beginPath(); g.arc(ix, y, 15.5 * S, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2); g.stroke(); }
         g.fillStyle = '#fff'; g.font = FONT(13, 1); g.textAlign = 'left'; g.fillText((hint ? (p.ok ? '✓ ' : '! ') : '') + p.label, ix + 19, y + 5 + dy);
         if (p.st === 'gone') { g.strokeStyle = p.ok ? '#ffb84d' : PAL.tealHi; g.lineWidth = 3.5; g.beginPath(); g.moveTo(cx - 11, y - 11); g.lineTo(cx + 11, y + 11); g.moveTo(cx + 11, y - 11); g.lineTo(cx - 11, y + 11); g.stroke(); }
         g.globalAlpha = 1; }
