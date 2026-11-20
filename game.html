@@ -125,6 +125,16 @@ button.go{background:var(--warn);color:#fff}
 #btnPause{width:44px;height:40px}
 @media (prefers-reduced-motion:reduce){#card,#toast{transition:none}#timer.low{animation:none}}
 
+/* 60초 시작 안내: 짧게 */
+.pick .brief{display:grid;gap:8px;max-width:400px;margin:14px auto 4px;text-align:left}
+.pick .brief>span{display:flex;align-items:center;gap:12px;font-size:16.5px;color:#2c2733;background:#fff7e0;border:2px solid #f0dfa8;border-radius:12px;padding:9px 14px}
+.pick .brief i{font-style:normal;font-size:22px;width:26px;text-align:center}
+.pick .brief em{font-style:normal}
+.pick .brief b{color:#c2410c}
+#start .keys{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 11px;background:none;padding:4px 0 0;font-size:12.5px;color:var(--muted)}
+#start .keys span{display:inline-flex;align-items:center;gap:6px}
+#start .keys b{display:inline-block;min-width:28px;padding:2px 8px;border-radius:6px;background:#fff;border:1.5px solid #2c2733;box-shadow:0 2px 0 #2c2733;color:#2c2733;font-size:12px;text-align:center}
+
 /* ===== 7일 캠페인 UI ===== */
 #quest{margin-top:10px;background:var(--panel);border:2px solid var(--line);border-radius:16px;box-shadow:0 4px 0 var(--line);padding:9px 11px;width:min(300px,calc(100vw - 32px))}
 #quest h4{font-family:var(--display);font-weight:400;font-size:16px;display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -369,7 +379,7 @@ p,li,#dlgBody,#otx,.tuttx,.learn,#startText,#endText,#sumText,#resText,#dayText,
   <div class="pick">
     <h2 id="startTitle">비상 경보! 60초 안에 챙기세요</h2>
     <p id="startText"></p>
-    <p class="keys">이동 <b>WASD·방향키</b> (또는 바닥 탭) · 뛰기 <b>Shift</b> · 캐릭터 바꾸기 <b>Ctrl</b> · 줍기·조사·대화 넘기기 <b>스페이스</b> · 다른 행동 <b>X C V</b> · 가방 장비 사용 <b>1~4</b> · 선택지 <b>숫자 키</b> · 60초 중 바로 내려가기 <b>Q</b> · 미니게임 포기 <b>G</b> · 일시정지 <b>P</b> · 전체 화면 <b>F</b> · 배경음 <b>M</b> · 처음부터 <b>R</b></p>
+    <p class="keys"><span>이동<b>방향키</b></span><span>달리기<b>Shift</b></span><span>줍기<b>Space</b></span><span>캐릭터 바꾸기<b>Ctrl</b></span><span>바로 내려가기<b>Q</b></span></p>
     <div class="res-btns"><button id="startGo" class="go" type="button">준비 완료 · 60초 시작</button></div>
   </div>
 </div>
@@ -2288,8 +2298,8 @@ $('resGo').addEventListener('click',()=>{
   fade('지하 벙커로 내려가는 중…',async()=>{}).then(()=>startDay(1));
 });
 $('startGo').addEventListener('click',()=>{startChallenge();canvas.focus();});
-$('startTitle').textContent='비상 경보! 비인가 접근 탐지';
-$('startText').innerHTML=`방금 루프랩 1층 서버와 출입 시스템에서 <b>비인가 접근</b>이 탐지됐어요. 공격자가 사무실을 장악하기 전에 <b>60초 뒤 1층은 비상 차단 규정에 따라 완전히 잠겨요.</b><br>그 전에 필요한 보안 장비와 물품을 챙겨, 회사 망과 분리된 <b>지하 관제실</b>로 내려가야 해요. 1층에 남겨진 장비는 침입자가 손댔을 수 있어서 <b>나중에 쓸 수 없어요.</b><br><b>서 대리 가방 4칸, 홍 팀장 가방 3칸</b>(마스터 키 1칸 고정). 물건은 11개라 다 챙길 수 없어요. 챙긴 장비는 벙커에 설치하거나 미니게임·결정에서 직접 써요.`;
+$('startTitle').textContent='비상 경보! 60초 안에 챙기세요';
+$('startText').innerHTML=`<span class="brief"><span><i>⏱</i><em><b>60초 뒤</b> 1층이 완전히 잠겨요</em></span><span><i>🎒</i><em>장비를 챙겨 <b>지하 벙커</b>로 내려가요</em></span><span><i>⚖️</i><em>가방은 <b>4칸 + 3칸</b>뿐, 꼭 필요한 것만!</em></span></span>`;
 
 /* ================= 일시정지 ================= */
 function setPause(on){if(on&&(!$('loading').hidden||!$('result').hidden||!$('ending').hidden))return;paused=on;$('pause').hidden=!on;if(on)mountSettings($('pSet'));keys.clear();if(!on){clock.getDelta();canvas.focus();}
@@ -2391,7 +2401,7 @@ Promise.all([loadModel('juho'),loadModel('harin')]).then(async([j,h])=>{
 loop();
 if(TOUCH){const set=(sel,t)=>{const e=document.querySelector(sel);if(e)e.textContent=t;};
   set('#otitle em','화면을 눌러 시작');set('#ogate span','▶ 화면을 눌러 인트로 시작');set('#cardHint','');
-  const ks=document.querySelector('.pick .keys');if(ks)ks.innerHTML='이동 <b>바닥을 톡</b> (자동으로 달려가요) · 캐릭터 바꾸기 <b>오른쪽 아래 얼굴</b> · 줍기·조사·행동 <b>화면의 버튼</b> · 대화 넘기기 <b>대화창을 톡</b> · 가방 장비 <b>칸을 톡</b>';
+  const ks=document.querySelector('.pick .keys');if(ks)ks.innerHTML='<span>이동<b>바닥 톡</b></span><span>줍기<b>화면 버튼</b></span><span>캐릭터 바꾸기<b>오른쪽 아래 얼굴</b></span>';
   document.querySelectorAll('button').forEach(b=>{const n=[...b.childNodes].reverse().find(c=>c.nodeType===3&&c.textContent.trim());if(n)n.textContent=n.textContent.replace(/\s*\((?:Space|스페이스|Esc|[A-Z0-9](?: 길게)?)\)\s*$/,'');});
   const cr=document.querySelector('#confirmR p');if(cr)cr.innerHTML='맨 처음 60초 준비부터 다시 시작해요. 지금까지의 기록은 지워져요.';}
 window.__dbg={TOUCH,showEnding,FLY,dropItem,get GET(){return GET},gear,closeGet,get S(){return S},G,spawnAgent,placeCat,get PHASE(){return PHASE},get player(){return player},get chars(){return chars},agents,doTask,DAYS,startDay,setControl,travel,goTo,take,startChallenge,endChallenge,CH,activeTasks,install,talk,dlgAdvance,get curMap(){return curMap},UI,camera,

@@ -157,7 +157,7 @@ const FOOT = {
 };
 /* 시작 전 안내 팝업: 어떻게 하는 게임인지 3단계로 보여 줘요 */
 const HOWTO = {
-  firewall: ['패킷이 통로를 따라 와서 관문 앞에서 잠깐 멈춰요. 관문은 늘 닫혀 있어요(기본 차단).', '왼쪽 허용 규칙에 맞는 패킷이면, 노란 시간 고리가 끝나기 전에 그 통로 번호 키(1~5)를 눌러 허용해요. 업무 패킷을 3번 막으면 하트가 하나 줄어요.', '빨갛게 반짝이는 위험 패킷은 아무것도 누르지 마세요. 시간이 끝나면 자동 차단! 안전한 것만 열어 주면 통과!'],
+  firewall: ['패킷이 통로를 따라 와서 관문 앞에서 잠깐 멈춰요. 관문은 늘 닫혀 있어요(기본 차단).', '왼쪽 허용 규칙에 맞는 패킷이면, 노란 시간 고리가 끝나기 전에 그 통로 번호 키(1~4)를 눌러 허용해요. 업무 패킷을 3번 막으면 하트가 하나 줄어요.', '빨갛게 반짝이는 위험 패킷은 아무것도 누르지 마세요. 시간이 끝나면 자동 차단! 안전한 것만 열어 주면 통과!'],
   sort: ['메일·문자·메신저 카드가 위에서 떨어져요.', '보낸 사람, 회신 주소, 링크, 요청 내용을 꼼꼼히 봐요.', '바닥에 닿기 전에 안전하면 ←, 위험하면 → 로 보내요.'],
   mfa: ['왼쪽 관제 화면에는 지금 실제로 로그인 중인 직원이, 오른쪽 휴대폰에는 로그인 승인 요청이 떠요.', '이름 · 위치 · 기기 · 번호를 양쪽에서 비교해요. 하나라도 다르거나 로그인 중인 직원이 없으면 수상해요.', '본인 요청이면 → 승인, 아니면 ← 거부. 시간이 지나면 자동으로 거부돼요.'],
   deepcall: ['대표님 얼굴과 목소리로 급한 송금을 요구하는 영상통화가 와요. ① 흔적 잡기 → ② 질문하기, 두 단계예요.', '① 장면마다 3·2·1 카운트다운이 돌아요. 그 안에 이상한 흔적을 종류에 맞게 1 영상 · 2 음성 · 3 요구 키로 잡아요. 평범한 장면은 그냥 두세요.', '② ↑↓·Space로 진짜 대표님만 답할 수 있는 질문 2개를 골라요. 둘만 아는 질문에 얼버무리면 가짜라는 증거예요!'],
@@ -314,10 +314,10 @@ function GAME_firewall(spec) {
   const allow = k => { if (k >= n) return; const p = list.find(q => q.lane === k && q.st === 'wait'); if (p) judge(p, true); else sound.play('click'); };
   tbtns(lanes.map((l, k) => [`${k + 1} · ${l.short || l.name} 허용`, () => allow(k)]));
   return {
-    key(code, down) { if (!down) return; const m = code.match(/^(?:Digit|Numpad)([1-9])$/); if (m) allow(+m[1] - 1); const q = { KeyQ: 0, KeyW: 1, KeyE: 2, KeyR: 3, KeyT: 4 }[code]; if (q != null) allow(q); },
+    key(code, down) { if (!down) return; const m = code.match(/^(?:Digit|Numpad)([1-9])$/); if (m) allow(+m[1] - 1); const q = { KeyQ: 0, KeyW: 1, KeyE: 2, KeyR: 3 }[code]; if (q != null) allow(q); },
     down(x, y) { const l = L(); if (x > l.tx0) allow(Math.floor((y - l.top) / l.rowH)); },
     update(dt) { left -= dt; spawn -= dt; const prog = 1 - left / T, l = L(), span = l.stopX - l.tx0;
-      if (spawn <= 0) { spawn = rnd(0.7, 1.05) * (1 - prog * 0.3) / E.rate;
+      if (spawn <= 0) { spawn = rnd(0.85, 1.25) * (1 - prog * 0.3) / E.rate;
         const free = lanes.map((_, k) => k).filter(k => list.filter(p => p.lane === k && (p.st === 'move' || p.st === 'wait')).length < 2);
         if (free.length) { const k = pick(free), p = pick(pk.filter(q => q.lane === k)); g.font = FONT(13, 1); list.push({ ...p, x: 0, v: rnd(240, 280) * (1 + prog * 0.35) * E.speed, w: g.measureText(p.label).width + 60, st: 'move', t: 0, kind: kind(p.label) }); } }
       for (const gt of gate) { gt.open = Math.max(0, gt.open - dt * 1.4); gt.flash = Math.max(0, gt.flash - dt * 2); }
